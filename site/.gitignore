@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.env
+.dev.vars
+# Real site data is generated on your own machine by scripts/build_site_data.py
+src/data/generated/

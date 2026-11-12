@@ -1,0 +1,10 @@
+---
+const { positive = 0, neutral = 0, negative = 0 } = Astro.props;
+const total = positive + neutral + negative || 1;
+const pct = (n: number) => `${((n / total) * 100).toFixed(1)}%`;
+---
+<div class="bar" role="img" aria-label={`${positive} positive, ${neutral} neutral, ${negative} negative opinions`}>
+  <span style={`width:${pct(positive)}`}></span>
+  <span style={`width:${pct(neutral)}`}></span>
+  <span style={`width:${pct(negative)}`}></span>
+</div>

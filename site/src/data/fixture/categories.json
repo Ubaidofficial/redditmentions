@@ -1,0 +1,21 @@
+{
+ "fixture": true,
+ "comments_through": "2026-01-01",
+ "min_opinions": 15,
+ "categories": [
+  {
+   "slug": "sample-category-one",
+   "name": "Sample Category One",
+   "products": 3,
+   "opinions": 126,
+   "top_pick": "Example Product A"
+  },
+  {
+   "slug": "sample-category-two",
+   "name": "Sample Category Two",
+   "products": 3,
+   "opinions": 126,
+   "top_pick": "Example Product A"
+  }
+ ]
+}

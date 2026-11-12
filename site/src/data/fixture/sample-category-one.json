@@ -1,0 +1,132 @@
+{
+ "slug": "sample-category-one",
+ "name": "Sample Category One",
+ "products": [
+  {
+   "rank": 1,
+   "slug": "example-product-a",
+   "name": "Example Product A",
+   "brand": "Example",
+   "opinions": 46,
+   "positive": 35,
+   "neutral": 8,
+   "negative": 3,
+   "share_positive": 76,
+   "share_negative": 7,
+   "score": 73,
+   "asin": null,
+   "likes": [
+    {
+     "title": "Placeholder strength",
+     "count": 5
+    }
+   ],
+   "dislikes": [
+    {
+     "title": "Placeholder weakness",
+     "count": 3
+    }
+   ],
+   "quotes": [
+    {
+     "text": "Placeholder quote used only to test the page layout.",
+     "sentiment": "positive",
+     "subreddit": "example",
+     "date": "2026-01-01",
+     "url": "https://www.reddit.com/"
+    },
+    {
+     "text": "Another placeholder quote with a negative tone for layout testing.",
+     "sentiment": "negative",
+     "subreddit": "example",
+     "date": "2026-01-02",
+     "url": "https://www.reddit.com/"
+    }
+   ]
+  },
+  {
+   "rank": 2,
+   "slug": "example-product-b",
+   "name": "Example Product B",
+   "brand": "Example",
+   "opinions": 42,
+   "positive": 30,
+   "neutral": 8,
+   "negative": 4,
+   "share_positive": 71,
+   "share_negative": 10,
+   "score": 66,
+   "asin": null,
+   "likes": [
+    {
+     "title": "Placeholder strength",
+     "count": 5
+    }
+   ],
+   "dislikes": [
+    {
+     "title": "Placeholder weakness",
+     "count": 3
+    }
+   ],
+   "quotes": [
+    {
+     "text": "Placeholder quote used only to test the page layout.",
+     "sentiment": "positive",
+     "subreddit": "example",
+     "date": "2026-01-01",
+     "url": "https://www.reddit.com/"
+    },
+    {
+     "text": "Another placeholder quote with a negative tone for layout testing.",
+     "sentiment": "negative",
+     "subreddit": "example",
+     "date": "2026-01-02",
+     "url": "https://www.reddit.com/"
+    }
+   ]
+  },
+  {
+   "rank": 3,
+   "slug": "example-product-c",
+   "name": "Example Product C",
+   "brand": "Example",
+   "opinions": 38,
+   "positive": 25,
+   "neutral": 8,
+   "negative": 5,
+   "share_positive": 66,
+   "share_negative": 13,
+   "score": 59,
+   "asin": null,
+   "likes": [
+    {
+     "title": "Placeholder strength",
+     "count": 5
+    }
+   ],
+   "dislikes": [
+    {
+     "title": "Placeholder weakness",
+     "count": 3
+    }
+   ],
+   "quotes": [
+    {
+     "text": "Placeholder quote used only to test the page layout.",
+     "sentiment": "positive",
+     "subreddit": "example",
+     "date": "2026-01-01",
+     "url": "https://www.reddit.com/"
+    },
+    {
+     "text": "Another placeholder quote with a negative tone for layout testing.",
+     "sentiment": "negative",
+     "subreddit": "example",
+     "date": "2026-01-02",
+     "url": "https://www.reddit.com/"
+    }
+   ]
+  }
+ ]
+}

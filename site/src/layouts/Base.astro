@@ -1,0 +1,50 @@
+---
+import '../styles/global.css';
+import { SITE, NOINDEX, AMAZON_TAG } from '../config';
+import { usingFixture, meta } from '../lib/data';
+
+const { title, description = SITE.description } = Astro.props;
+const canonical = new URL(Astro.url.pathname, SITE.url).toString();
+const noindex = NOINDEX || usingFixture;
+---
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex,nofollow" />}
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonical} />
+    <meta property="og:site_name" content={SITE.name} />
+  </head>
+  <body>
+    {usingFixture && (
+      <div class="banner">SAMPLE DATA: placeholder content for layout testing. Run scripts/build_site_data.py to use real data.</div>
+    )}
+    <header class="site-header">
+      <div class="wrap">
+        <a class="brand" href="/">{SITE.name}</a>
+        <nav>
+          {meta.categories.slice(0, 3).map((c: any) => <a href={`/${c.slug}/`}>{c.name}</a>)}
+          <a href="/methodology/">How it works</a>
+        </nav>
+      </div>
+    </header>
+    <main class="wrap"><slot /></main>
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>{SITE.disclaimer}</p>
+        <p>
+          Rankings use Reddit comments collected through {meta.comments_through}, so newer products and recent
+          changes may be missing. <a href="/methodology/">How rankings are made</a>.
+        </p>
+        {AMAZON_TAG && <p>As an Amazon Associate we earn from qualifying purchases.</p>}
+      </div>
+    </footer>
+  </body>
+</html>

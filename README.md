@@ -87,3 +87,35 @@ filter, series and list pages are structured (used to build the ranking extracto
   site's work. Use the data for research; republishing it as-is carries copyright risk.
 - Reddit announced in Sept 2026 that its public API will close by March 2027, so a new site
   will need a licensed data source.
+
+## Website (AskTheSubs)
+
+`site/` is a static [Astro](https://astro.build) site, served by Cloudflare Workers with static assets
+(`site/wrangler.jsonc`). The brand name, tagline, disclaimer and affiliate settings live in
+`site/src/config.ts`.
+
+Build the data for the six launch categories (robot vacuums, baby strollers, fitness trackers,
+ultrawide monitors, wireless earbuds, vacuum cleaners) from the CSVs in `output/`:
+
+```bash
+python3 scripts/build_site_data.py
+```
+
+This merges duplicate products, recomputes sentiment from the opinion rows (one vote per Redditor),
+ranks by a confidence score, keeps a few short quotes with links to the original comments and writes
+`site/src/data/generated/`. That folder is gitignored, so the data stays on your machine.
+Without it the site builds from a clearly marked sample fixture and is set to `noindex`.
+
+```bash
+cd site
+npm install
+npm run dev        # preview at http://localhost:4321
+npm run build      # static output in site/dist
+npm run deploy     # build, then deploy with wrangler (needs `npx wrangler login` once)
+```
+
+Environment variables (set in `site/.env` or the build environment):
+
+- `PUBLIC_AMAZON_TAG`: your Amazon Associates tag. Leave unset until the account is approved; buy
+  links are then plain, non-affiliate links and no affiliate disclosure is shown.
+- `PUBLIC_NOINDEX=true`: keep search engines out (previews).
