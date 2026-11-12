@@ -2,7 +2,6 @@
 import Base from '../../layouts/Base.astro';
 import Sentiment from '../../components/Sentiment.astro';
 import BuyButton from '../../components/BuyButton.astro';
-import Score from '../../components/Score.astro';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -15,8 +14,10 @@ const { category, product } = Astro.params;
 const cat = getCategory(category as string);
 const p = cat.products.find((x: any) => x.slug === product);
 const others = cat.products.filter((x: any) => x.slug !== product).slice(0, 3);
-const likes = p.quotes.filter((q: any) => q.sentiment === 'positive');
-const warns = p.quotes.filter((q: any) => q.sentiment === 'negative');
+const quotes = [
+  ...p.quotes.filter((q: any) => q.sentiment === 'positive'),
+  ...p.quotes.filter((q: any) => q.sentiment === 'negative'),
+];
 const fmt = (n: number) => n.toLocaleString('en-US');
 ---
 <Base
@@ -24,90 +25,81 @@ const fmt = (n: number) => n.toLocaleString('en-US');
   description={`${p.opinions} Reddit users on ${p.name}: ${p.share_positive}% positive, ${p.share_negative}% negative, with quotes and links to the original comments.`}
   cta={!!p.asin}
 >
-  <p class="crumbs"><a href="/">Home</a> / <a href={`/${cat.slug}/`}>{cat.name}</a> / {p.name}</p>
+  <div class="wrap">
+    <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {p.name}</p>
 
-  <div class="phero">
-    <div>
-      <p class="eyebrow">#{p.rank} of {cat.products.length} {cat.name.toLowerCase()}</p>
+    <header class="phead">
+      <span class="kicker">No. {p.rank} of {cat.products.length} · {cat.name}</span>
       <h1>{p.name}</h1>
-      <p class="lead">What {fmt(p.opinions)} Redditors say about it.</p>
-      <BuyButton asin={p.asin} />
-    </div>
-    <Score value={p.score} large />
-  </div>
-
-  <div class="pstats">
-    <div class="pstat"><b>{fmt(p.opinions)}</b><span>Redditors counted</span></div>
-    <div class="pstat"><b>{p.share_positive}%</b><span>positive</span></div>
-    <div class="pstat"><b>{p.share_negative}%</b><span>negative</span></div>
-  </div>
-  <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
-
-  {(p.likes.length > 0 || p.dislikes.length > 0) && (
-    <div class="cols">
-      <div class="panel good">
-        <h3>What people like</h3>
-        {p.likes.length > 0
-          ? <ul>{p.likes.map((l: any) => <li><span>{l.title}</span><small>{l.count} mentions</small></li>)}</ul>
-          : <p class="row-meta">Nothing stands out yet.</p>}
+      <div class="verdict">
+        <div class="s"><b class="num">{p.score}</b><span>Score out of 100</span></div>
+        <div><b class="num">{fmt(p.opinions)}</b><span>Redditors counted</span></div>
+        <div><b class="num">{p.share_positive}%</b><span>positive</span></div>
+        <div><b class="num">{p.share_negative}%</b><span>negative</span></div>
       </div>
-      <div class="panel bad">
-        <h3>What people complain about</h3>
-        {p.dislikes.length > 0
-          ? <ul>{p.dislikes.map((d: any) => <li><span>{d.title}</span><small>{d.count} mentions</small></li>)}</ul>
-          : <p class="row-meta">No recurring complaints.</p>}
-      </div>
-    </div>
-  )}
+      <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
+      {p.asin && <div class="pactions"><BuyButton asin={p.asin} /></div>}
+    </header>
 
-  {likes.length > 0 && <h2>In their words: positive</h2>}
-  <div class="quotes">
-    {likes.map((q: any) => (
-      <blockquote class="pos">
-        <p>"{q.text}"</p>
-        <footer>r/{q.subreddit} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">original comment</a></footer>
-      </blockquote>
-    ))}
-  </div>
-  {warns.length > 0 && <h2>In their words: negative</h2>}
-  <div class="quotes">
-    {warns.map((q: any) => (
-      <blockquote class="neg">
-        <p>"{q.text}"</p>
-        <footer>r/{q.subreddit} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">original comment</a></footer>
-      </blockquote>
-    ))}
-  </div>
+    {(p.likes.length > 0 || p.dislikes.length > 0) && (
+      <section class="pair">
+        <div class="good">
+          <h2>Praised for</h2>
+          {p.likes.length > 0
+            ? <ul>{p.likes.map((l: any) => <li><span>{l.title}</span><small>{l.count} mentions</small></li>)}</ul>
+            : <p class="empty">Nothing stands out yet.</p>}
+        </div>
+        <div class="bad">
+          <h2>Criticised for</h2>
+          {p.dislikes.length > 0
+            ? <ul>{p.dislikes.map((d: any) => <li><span>{d.title}</span><small>{d.count} mentions</small></li>)}</ul>
+            : <p class="empty">No recurring complaints.</p>}
+        </div>
+      </section>
+    )}
 
-  <details class="how">
-    <summary>How is this score calculated?</summary>
-    <p>
-      Each Redditor counts once. Positive opinions count 1, neutral ½ and negative 0. The score is the lower bound of a
-      95% confidence interval on that approval rate, so products with few opinions are held back.
-      <a href="/methodology/">Full method</a>.
-    </p>
-  </details>
-
-  <p class="note">
-    Quotes are short excerpts from public Reddit comments, shown with a link to the original. Counts cover comments
-    collected through {meta.comments_through}.
-  </p>
-
-  {others.length > 0 && (
-    <>
-      <h2>Other top {cat.name.toLowerCase()}</h2>
-      <div class="grid">
-        {others.map((o: any) => (
-          <a class="card" href={`/${cat.slug}/${o.slug}/`}>
-            <h3>#{o.rank} {o.name}</h3>
-            <p class="m">{o.share_positive}% positive · {fmt(o.opinions)} Redditors</p>
-          </a>
+    {quotes.length > 0 && (
+      <section class="receipts">
+        <h2>The <em>receipts</em></h2>
+        {quotes.map((q: any) => (
+          <blockquote class={q.sentiment === 'negative' ? 'neg' : 'pos'}>
+            <div>
+              <p>{q.text}</p>
+              <footer>r/{q.subreddit} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">Original comment ↗</a></footer>
+            </div>
+          </blockquote>
         ))}
-      </div>
-    </>
-  )}
+        <p class="sources-note">
+          Short excerpts from public Reddit comments, each linked to the original. Counts cover comments collected
+          through {meta.comments_through}.
+        </p>
+      </section>
+    )}
 
-  {p.asin && (
-    <div class="sticky-cta"><BuyButton asin={p.asin} /></div>
-  )}
+    <details class="how">
+      <summary>How is this score calculated?</summary>
+      <p>
+        Each Redditor counts once. Positive opinions count 1, neutral ½ and negative 0. The score is the lower bound of
+        a 95% confidence interval on that approval rate, so products with few opinions are held back.
+        <a href="/methodology/">Full method</a>.
+      </p>
+    </details>
+
+    {others.length > 0 && (
+      <section class="related">
+        <div class="section-head"><h2 style="font:400 clamp(32px,4vw,48px)/1.05 var(--serif);letter-spacing:-.02em">More {cat.name.toLowerCase()}</h2></div>
+        <div class="answer" style="border-top:0">
+          {others.map((o: any) => (
+            <a href={`/${cat.slug}/${o.slug}/`}>
+              <span class="kicker">No. {o.rank}</span>
+              <span class="nm">{o.name}</span>
+              <span class="m num">{o.share_positive}% positive · {fmt(o.opinions)} Redditors</span>
+            </a>
+          ))}
+        </div>
+      </section>
+    )}
+  </div>
+
+  {p.asin && <div class="sticky-cta"><BuyButton asin={p.asin} /></div>}
 </Base>

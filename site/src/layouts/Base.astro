@@ -1,4 +1,7 @@
 ---
+import '@fontsource/instrument-serif/400.css';
+import '@fontsource/instrument-serif/400-italic.css';
+import '@fontsource-variable/instrument-sans/wght.css';
 import '../styles/global.css';
 import { SITE, NOINDEX, AMAZON_TAG } from '../config';
 import { usingFixture, meta } from '../lib/data';
@@ -16,7 +19,7 @@ const noindex = NOINDEX || usingFixture;
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#4f46e5" />
+    <meta name="theme-color" content="#ff4500" />
     {noindex && <meta name="robots" content="noindex,nofollow" />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -32,7 +35,7 @@ const noindex = NOINDEX || usingFixture;
     <header class="site-header">
       <div class="wrap">
         <a class="brand" href="/" aria-label={`${SITE.name} home`}>
-          <svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="14" fill="#4f46e5"/><path d="M14 18a6 6 0 0 1 6-6h24a6 6 0 0 1 6 6v18a6 6 0 0 1-6 6H31l-10 9v-9h-1a6 6 0 0 1-6-6z" fill="#fff"/><path d="M32 17l8 9h-5.5v8h-5v-8H24z" fill="#4f46e5"/></svg>
+          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5L15 14H1z" fill="#ff4500"/></svg>
           {SITE.name}
         </a>
         <nav class="nav" aria-label="Main">
@@ -42,16 +45,17 @@ const noindex = NOINDEX || usingFixture;
               {meta.categories.map((c: any) => <a href={`/${c.slug}/`}>{c.name}</a>)}
             </div>
           </details>
-          <a href="/methodology/">How it works</a>
+          <a href="/methodology/">Method</a>
         </nav>
       </div>
     </header>
-    <main id="main" class="wrap"><slot /></main>
+    <main id="main"><slot /></main>
     <footer class="site-footer">
       <div class="wrap">
+        <div class="big">Ask the <em>subs.</em></div>
         <div class="fgrid">
           <div>
-            <h4>{SITE.name}</h4>
+            <h4>About</h4>
             <p>Product rankings from what people say in Reddit communities, with a link to the original comment behind every quote.</p>
           </div>
           <div>
@@ -59,16 +63,16 @@ const noindex = NOINDEX || usingFixture;
             <ul>{meta.categories.map((c: any) => <li><a href={`/${c.slug}/`}>{c.name}</a></li>)}</ul>
           </div>
           <div>
-            <h4>About</h4>
+            <h4>Method</h4>
             <ul>
               <li><a href="/methodology/">How rankings are made</a></li>
-              <li>Comments collected through {meta.comments_through}</li>
+              <li><span style="font-size:15px;opacity:.7">Comments through {meta.comments_through}</span></li>
             </ul>
           </div>
         </div>
         <div class="fine">
           <p>{SITE.disclaimer}</p>
-          {AMAZON_TAG && <p>As an Amazon Associate we earn from qualifying purchases.</p>}
+          {AMAZON_TAG && <p style="margin-top:8px">As an Amazon Associate we earn from qualifying purchases.</p>}
         </div>
       </div>
     </footer>

@@ -4,48 +4,50 @@ import { SITE, AMAZON_TAG } from '../config';
 import { meta } from '../lib/data';
 ---
 <Base title={`How ${SITE.name} ranks products`} description="Where the data comes from, how products are scored, and what the rankings can and cannot tell you.">
-  <p class="crumbs"><a href="/">Home</a> / How it works</p>
-  <h1>How rankings are made</h1>
-  <div class="prose">
+  <div class="wrap">
+    <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; Method</p>
+    <div class="prose">
+      <h1>How rankings are made</h1>
 
-  <h2>Where the data comes from</h2>
-  <p>
-    The rankings are built from public Reddit comments about each product, collected through {meta.comments_through}.
-    Opinions in those comments were extracted and labelled positive, neutral or negative by an automated process; we
-    have not checked every label by hand, so some will be wrong.
-  </p>
+      <h2>Where the data comes from</h2>
+      <p>
+        The rankings are built from public Reddit comments about each product, collected through {meta.comments_through}.
+        Opinions in those comments were extracted and labelled positive, neutral or negative by an automated process. We
+        have not checked every label by hand, so some will be wrong.
+      </p>
 
-  <h2>How a product is scored</h2>
-  <ol>
-    <li>Each Redditor counts once per product, using their overall stance.</li>
-    <li>Only products with at least {meta.min_opinions} Redditors are ranked.</li>
-    <li>
-      The score is the lower bound of a 95% confidence interval (Wilson score) for the approval rate, shown from 0 to
-      100. A positive opinion counts as 1, a neutral one as one half and a negative one as 0. A product liked by 90% of
-      20 people can rank below one liked by 85% of 300, because the larger sample is more trustworthy.
-    </li>
-  </ol>
+      <h2>How a product is scored</h2>
+      <ol>
+        <li>Each Redditor counts once per product, using their overall stance.</li>
+        <li>Only products with at least {meta.min_opinions} Redditors are ranked.</li>
+        <li>
+          The score is the lower bound of a 95% confidence interval (Wilson score) for the approval rate, shown from 0
+          to 100. A positive opinion counts as 1, a neutral one as one half and a negative one as 0. A product liked by
+          90% of 20 people can rank below one liked by 85% of 300, because the larger sample is more trustworthy.
+        </li>
+      </ol>
 
-  <h2>What this cannot tell you</h2>
-  <ul>
-    <li>Reddit users are not a representative sample, and communities for one brand skew toward that brand.</li>
-    <li>Some comments may come from people paid or encouraged to promote a product. We do not yet detect this.</li>
-    <li>Products released after {meta.comments_through} are missing, and opinions about older products may be out of date.</li>
-    <li>Safety matters for products like strollers and car seats. Check the manufacturer's safety information and recalls.</li>
-  </ul>
+      <h2>What this cannot tell you</h2>
+      <ul>
+        <li>Reddit users are not a representative sample, and communities for one brand skew toward that brand.</li>
+        <li>Some comments may come from people paid or encouraged to promote a product. We do not yet detect this.</li>
+        <li>Products released after {meta.comments_through} are missing, and opinions about older products may be out of date.</li>
+        <li>Safety matters for products like strollers and car seats. Check the manufacturer's safety information and recalls.</li>
+      </ul>
 
-  <h2>Quotes and sources</h2>
-  <p>
-    Quotes are short excerpts from public Reddit comments. Each one links to the original comment, and we do not show
-    usernames. The comments belong to their authors.
-  </p>
+      <h2>Quotes and sources</h2>
+      <p>
+        Quotes are short excerpts from public Reddit comments. Each one links to the original comment, and we do not show
+        usernames. The comments belong to their authors.
+      </p>
 
-  <h2>Affiliate links and independence</h2>
-  <p>
-    {AMAZON_TAG
-      ? 'Some links to Amazon are affiliate links: if you buy through them we may earn a commission, at no extra cost to you. Rankings are calculated from Reddit opinions only, and commissions do not influence them.'
-      : 'Buy buttons currently link to Amazon without an affiliate tag. If that changes we will say so here and mark the links. Rankings come from Reddit opinions only.'}
-  </p>
-  <p>{SITE.disclaimer}</p>
+      <h2>Affiliate links and independence</h2>
+      <p>
+        {AMAZON_TAG
+          ? 'Some links to Amazon are affiliate links: if you buy through them we may earn a commission, at no extra cost to you. Rankings are calculated from Reddit opinions only, and commissions do not influence them.'
+          : 'Buy buttons currently link to Amazon without an affiliate tag. If that changes we will say so here and mark the links. Rankings come from Reddit opinions only.'}
+      </p>
+      <p style="margin-top:14px">{SITE.disclaimer}</p>
+    </div>
   </div>
 </Base>

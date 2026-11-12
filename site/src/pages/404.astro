@@ -3,9 +3,15 @@ import Base from '../layouts/Base.astro';
 import { categories } from '../lib/data';
 ---
 <Base title="Page not found">
-  <h1>Page not found</h1>
-  <p class="lead">That page does not exist. Try one of the categories:</p>
-  <div class="grid">
-    {categories.map((c: any) => <a class="card" href={`/${c.slug}/`}><h3>{c.name}</h3></a>)}
+  <div class="wrap">
+    <div class="prose">
+      <h1>Page not found</h1>
+      <p>That page does not exist. Try one of the rankings:</p>
+    </div>
+    <ul class="index" style="margin-top:32px">
+      {categories.map((c: any) => (
+        <li><a href={`/${c.slug}/`}><span class="name">{c.name}</span><span class="meta"></span><span class="go" aria-hidden="true">→</span></a></li>
+      ))}
+    </ul>
   </div>
 </Base>

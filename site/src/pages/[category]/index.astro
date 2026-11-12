@@ -2,7 +2,6 @@
 import Base from '../../layouts/Base.astro';
 import Sentiment from '../../components/Sentiment.astro';
 import BuyButton from '../../components/BuyButton.astro';
-import Score from '../../components/Score.astro';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -20,7 +19,6 @@ const picks = [{ label: 'Top pick', p: top, note: 'Best confidence-weighted scor
 if (mostDiscussed.slug !== top.slug) {
   picks.push({ label: 'Most discussed', p: mostDiscussed, note: `${fmt(mostDiscussed.opinions)} Redditors weighed in` });
 }
-// Highest approval among well-discussed products, skipping ones already shown above.
 const shown = new Set(picks.map((k) => k.p.slug));
 const crowd = products
   .filter((p) => p.opinions >= 100 && !shown.has(p.slug))
@@ -32,65 +30,73 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
   title={`Best ${cat.name} According to Reddit (${products.length} ranked)`}
   description={`${cat.name} ranked by what Reddit users recommend and warn against, with links to the original comments.`}
 >
-  <p class="crumbs"><a href="/">Home</a> / {cat.name}</p>
-  <h1>Best {cat.name}, according to Reddit</h1>
-  <p class="lead">
-    {products.length} products with at least {meta.min_opinions} Redditors each, ranked by confidence-weighted approval.
-    Comments collected through {meta.comments_through}.
-  </p>
+  <div class="wrap">
+    <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; {cat.name}</p>
+    <header class="page-head">
+      <span class="kicker">{products.length} ranked · through <span style="white-space:nowrap">{meta.comments_through}</span></span>
+      <h1>Best {cat.name} <em>according to Reddit</em></h1>
+      <p class="lead">
+        Every product below has at least {meta.min_opinions} Redditors behind it. Rankings weigh how many people
+        approve against how many were counted, so a few enthusiasts cannot carry a product to the top.
+      </p>
+    </header>
 
-  <div class="picks">
-    {picks.map((k) => (
-      <a class="pick-card" href={`/${cat.slug}/${k.p.slug}/`}>
-        <span class="lbl">{k.label}</span>
-        <span class="nm">{k.p.name}</span>
-        <span class="m">{k.note} · {k.p.share_positive}% positive</span>
-      </a>
-    ))}
+    <div class="answer">
+      {picks.map((k) => (
+        <a href={`/${cat.slug}/${k.p.slug}/`}>
+          <span class="kicker">{k.label}</span>
+          <span class="nm">{k.p.name}</span>
+          <span class="m num">{k.note} · {k.p.share_positive}% positive</span>
+        </a>
+      ))}
+    </div>
+
+    <div class="controls" id="controls" hidden>
+      <input id="q" type="search" placeholder={`Search ${cat.name.toLowerCase()}`} aria-label="Search products" />
+      <select id="brand" aria-label="Filter by brand">
+        <option value="">All brands</option>
+        {brands.map((b) => <option value={b.toLowerCase()}>{b}</option>)}
+      </select>
+      <select id="sort" aria-label="Sort by">
+        <option value="score">Sort: best score</option>
+        <option value="opinions">Sort: most discussed</option>
+        <option value="positive">Sort: most positive</option>
+      </select>
+      <span id="count" aria-live="polite"></span>
+    </div>
+
+    <div class="thead kicker" aria-hidden="true"><span>Rank</span><span>Product</span><span>Score</span><span>Redditors</span><span></span></div>
+    <ol class="list" id="plist">
+      {products.map((p) => (
+        <li class="row" data-name={`${p.name} ${p.brand ?? ''}`.toLowerCase()} data-brand={(p.brand ?? '').toLowerCase()} data-rank={p.rank} data-opinions={p.opinions} data-pos={p.share_positive}>
+          <span class="rank num">{p.rank}</span>
+          <div>
+            <h3><a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a></h3>
+            {(p.likes[0] || p.dislikes[0]) && (
+              <p class="says">
+                {p.likes[0] && <span><b class="up">Praised</b> {p.likes[0].title}</span>}
+                {p.dislikes[0] && <span class="down"><b class="down">Flagged</b> {p.dislikes[0].title}</span>}
+              </p>
+            )}
+          </div>
+          <div class="scorecol">
+            <div class="n"><b class="num">{p.score}</b><small class="num">{p.share_positive}% positive</small></div>
+            <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
+          </div>
+          <div class="reds num">{fmt(p.opinions)}<small>Redditors</small></div>
+          <div class="acts">
+            <a class="textlink" href={`/${cat.slug}/${p.slug}/`}>What they say →</a>
+            <BuyButton asin={p.asin} small label="Amazon" />
+          </div>
+        </li>
+      ))}
+    </ol>
+
+    <p class="foot">
+      Score runs from 0 to 100: positive opinions count 1, neutral ½, negative 0, adjusted for how many people were
+      counted. <a href="/methodology/">How it works</a>.
+    </p>
   </div>
-
-  <div class="controls" id="controls" hidden>
-    <input id="q" type="search" placeholder={`Search ${cat.name.toLowerCase()}…`} aria-label="Search products" />
-    <select id="brand" aria-label="Filter by brand">
-      <option value="">All brands</option>
-      {brands.map((b) => <option value={b.toLowerCase()}>{b}</option>)}
-    </select>
-    <select id="sort" aria-label="Sort by">
-      <option value="score">Best score</option>
-      <option value="opinions">Most discussed</option>
-      <option value="positive">Most positive</option>
-    </select>
-    <span id="count" aria-live="polite"></span>
-  </div>
-
-  <ol class="list" id="plist" style="margin-top:24px">
-    {products.map((p) => (
-      <li class="row" data-name={`${p.name} ${p.brand ?? ''}`.toLowerCase()} data-brand={(p.brand ?? '').toLowerCase()} data-rank={p.rank} data-opinions={p.opinions} data-pos={p.share_positive}>
-        <span class="rank">#{p.rank}</span>
-        <div>
-          <h3><a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a></h3>
-          <p class="row-meta">{fmt(p.opinions)} Redditors · {p.share_positive}% positive · {p.share_negative}% negative</p>
-          <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
-          {(p.likes.length > 0 || p.dislikes.length > 0) && (
-            <ul class="tags">
-              {p.likes[0] && <li class="tag like">+ {p.likes[0].title}</li>}
-              {p.dislikes[0] && <li class="tag dislike">− {p.dislikes[0].title}</li>}
-            </ul>
-          )}
-        </div>
-        <Score value={p.score} />
-        <div class="row-actions">
-          <BuyButton asin={p.asin} small label="Amazon" />
-          <a class="more" href={`/${cat.slug}/${p.slug}/`}>What they say →</a>
-        </div>
-      </li>
-    ))}
-  </ol>
-
-  <p class="note">
-    Score = confidence-weighted approval from 0 to 100 (positive counts 1, neutral ½, negative 0, adjusted for how many
-    people were counted). <a href="/methodology/">How it works</a>.
-  </p>
 
   <script is:inline>
     (function () {
