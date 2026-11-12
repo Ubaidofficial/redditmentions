@@ -19,7 +19,10 @@ What it does to the raw archive data:
     negative = 0), and drops products with fewer than --min-opinions Redditors
   * keeps a few short quotes per product (preferring ones that end cleanly) with the
     link to the original comment, and never writes Reddit usernames
-  * stores the Amazon product id (ASIN) only, never the old affiliate tag
+  * folds variants of one product family into a single entry, using the product families
+    (series) RedditRecs defined, which extract.py saves in output/json
+  * stores the Amazon product id (ASIN) only, never the old affiliate tag; the link goes to the
+    most-discussed variant that has an Amazon listing
 """
 import argparse, csv, json, math, os, re, sys, unicodedata
 from collections import Counter, defaultdict
@@ -42,7 +45,8 @@ SENT = {"positive": "positive", "pos": "positive", "1": "positive",
 
 def norm(s):
     """Lowercase ascii words only; '+' becomes 'plus' so Aer+ and Aer stay different."""
-    s = unicodedata.normalize("NFKD", s or "").replace("+", " plus ").replace("&", " and ")
+    s = re.sub("[\u2122\u00ae\u00a9\u2120]", "", s or "")  # TM, (R), (C), SM: NFKD would turn the TM sign into "tm"
+    s = unicodedata.normalize("NFKD", s).replace("+", " plus ").replace("&", " and ")
     s = "".join(ch for ch in s if not unicodedata.combining(ch))
     return re.sub(r"[^a-z0-9]+", " ", s.lower()).strip()
 
@@ -94,6 +98,36 @@ def read(folder, name):
         yield from csv.DictReader(f)
 
 
+def load_series(folder):
+    """(category, model slug) -> (brand, series name), from the decoded series pages that
+    extract.py saved in <folder>/json. RedditRecs grouped variants of one product family into
+    a series (e.g. Miele Complete C3 variants), so we use its grouping instead of guessing."""
+    jdir = os.path.join(folder, "json")
+    found = {}
+    if not os.path.isdir(jdir):
+        return found
+    for fn in os.listdir(jdir):
+        if "__series__" not in fn or not fn.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(jdir, fn), encoding="utf-8") as f:
+                d = json.load(f)
+        except (OSError, ValueError):
+            continue
+        parts = (d.get("path") or "").strip("/").split("/") if isinstance(d, dict) else []
+        if len(parts) != 3 or parts[1] != "series":  # skips junk URLs that were archived with extra path parts
+            continue
+        for k, v in (d.get("data") or {}).items():
+            if k.startswith("series-pageData-") and isinstance(v, dict):
+                sd = v.get("seriesData") or {}
+                if not sd.get("name"):
+                    continue
+                for m in sd.get("models") or []:
+                    if isinstance(m, dict) and m.get("slug"):
+                        found[(parts[0], m["slug"])] = (sd.get("brand_name") or "", sd["name"])
+    return found
+
+
 def pick_quotes(cands, sentiment, limit):
     """Most specific, informative quotes of one sentiment; one per Redditor, no repeats."""
     chosen, seen_users, seen_text = [], set(), set()
@@ -116,8 +150,8 @@ def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", default="output", help="folder with the CSVs from extract.py")
     ap.add_argument("--out", default=os.path.join("site", "src", "data", "generated"))
-    ap.add_argument("--min-opinions", type=int, default=15, help="fewest Redditors for a product to be ranked")
-    ap.add_argument("--top", type=int, default=60, help="most products per category")
+    ap.add_argument("--min-opinions", type=int, default=25, help="fewest Redditors for a product to be ranked")
+    ap.add_argument("--top", type=int, default=40, help="most products per category")
     ap.add_argument("--categories-json", help="optional JSON file replacing the built-in category list")
     a = ap.parse_args()
 
@@ -125,22 +159,29 @@ def main():
     member_to_site = {m: c for c in cats for m in c["members"]}
 
     # ---- products (merge duplicates) --------------------------------------
-    groups, model_group = {}, {}
+    series = load_series(a.data)
+    groups, model_group, in_series = {}, {}, 0
     for r in read(a.data, "models.csv"):
         c = member_to_site.get(r["category_slug"])
         if not c:
             continue
-        key = (c["slug"], product_key(r["brand_name"], r["model_name"]))
-        g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "price": None,
+        sv = series.get((r["category_slug"], r["model_slug"]))
+        key = (c["slug"], ("series|" + product_key(*sv)) if sv else product_key(r["brand_name"], r["model_name"]))
+        g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "is_series": False,
                                     "users": defaultdict(list), "points": {}, "quotes": []})
         n = int(num(r["user_opinion_count"]) or 0)
-        if n > g["best"]:
+        if sv:
+            g["is_series"], g["brand"], g["name"] = True, sv[0], sv[1]
+            in_series += 1
+        elif n > g["best"]:
             g["best"], g["brand"], g["name"] = n, r["brand_name"], r["model_name"]
-        asin, price = asin_of(r["amazon_url"]), num(r["lowest_price"])
-        if asin and (g["asin"] is None or (price is not None and (g["price"] is None or price < g["price"]))):
-            g["asin"], g["price"] = asin, price
+        # buy link: the most-discussed variant that has an Amazon listing
+        asin = asin_of(r["amazon_url"])
+        if asin and n >= g["asin_n"]:
+            g["asin"], g["asin_n"] = asin, n
         model_group[(r["category_slug"], r["model_slug"])] = key
-    print(f"{len(model_group):,} archived products -> {len(groups):,} after merging duplicates", flush=True)
+    print(f"{len(model_group):,} archived products -> {len(groups):,} after merging duplicates "
+          f"({in_series:,} folded into {sum(1 for g in groups.values() if g['is_series']):,} product families)", flush=True)
 
     # ---- opinions (one vote per Redditor per product; quotes) -----------
     through, rows = "", 0
