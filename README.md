@@ -123,3 +123,22 @@ Environment variables (set in `site/.env` or the build environment):
   (the site shows a drawn illustration per category instead). Use it for noindex previews only, and
   switch to Amazon's official image links once your Associates account is approved: check the Associates
   Program Operating Agreement before showing Amazon's images on a live site.
+
+## Publishing
+
+On your own machine, from the project root:
+
+```bash
+./scripts/publish.sh
+```
+
+It pulls the latest code, rebuilds the data, installs dependencies and deploys. Put your preview flags
+in `site/.env` (gitignored) so they are used on every deploy:
+
+```
+PUBLIC_NOINDEX=true
+PUBLIC_PRODUCT_IMAGES=true
+```
+
+To go live, set `PUBLIC_NOINDEX=false` (or delete the line) and publish again. First time only:
+`cd site && npx wrangler login`.
