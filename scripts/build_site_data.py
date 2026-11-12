@@ -168,7 +168,7 @@ def main():
         sv = series.get((r["category_slug"], r["model_slug"]))
         key = (c["slug"], ("series|" + product_key(*sv)) if sv else product_key(r["brand_name"], r["model_name"]))
         g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "is_series": False,
-                                    "users": defaultdict(list), "points": {}, "quotes": []})
+                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set()})
         n = int(num(r["user_opinion_count"]) or 0)
         if sv:
             g["is_series"], g["brand"], g["name"] = True, sv[0], sv[1]
@@ -196,6 +196,8 @@ def main():
         user = r["reddit_username"] or r["opinion_id"]
         s = SENT.get(str(r["sentiment"]).strip().lower(), "neutral")
         g["users"][user].append(s)
+        if r["subreddit"]:
+            g["subs"].add(r["subreddit"])
         date = (r["comment_date"] or "")[:10]
         if date > through:
             through = date
@@ -223,7 +225,7 @@ def main():
     for old in os.listdir(a.out):
         if old.endswith(".json"):
             os.remove(os.path.join(a.out, old))
-    meta_cats = []
+    meta_cats, all_subs = [], set()
     for c in cats:
         ranked = []
         for key, g in groups.items():
@@ -244,7 +246,7 @@ def main():
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
-                "asin": g["asin"],
+                "asin": g["asin"], "_subs": g["subs"],
                 "likes": [{"title": t, "count": k} for t, k in likes],
                 "dislikes": [{"title": t, "count": k} for t, k in dislikes],
                 "quotes": pick_quotes(g["quotes"], "positive", 3) + pick_quotes(g["quotes"], "negative", 2),
@@ -254,6 +256,7 @@ def main():
         used = set()
         for i, p in enumerate(ranked, 1):
             p.pop("_s")
+            all_subs |= p.pop("_subs")
             slug, base, k = slugify(p["name"]), slugify(p["name"]), 2
             while slug in used:
                 slug, k = f"{base}-{k}", k + 1
@@ -269,6 +272,8 @@ def main():
     meta_cats = [m for m in meta_cats if m["products"] > 0]
     with open(os.path.join(a.out, "categories.json"), "w", encoding="utf-8") as f:
         json.dump({"fixture": False, "comments_through": through, "min_opinions": a.min_opinions,
+                   "stats": {"products": sum(m["products"] for m in meta_cats),
+                             "opinions": sum(m["opinions"] for m in meta_cats), "subreddits": len(all_subs)},
                    "categories": meta_cats}, f, ensure_ascii=False, indent=1)
     print(f"wrote {len(meta_cats)} categories to {a.out}")
 

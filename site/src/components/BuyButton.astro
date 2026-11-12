@@ -1,9 +1,9 @@
 ---
 import { buyUrl, AMAZON_TAG } from '../config';
-const { asin } = Astro.props;
+const { asin, small = false, label = 'Check price on Amazon' } = Astro.props;
 ---
 {asin && (
-  <a class="btn" href={buyUrl(asin)} rel={AMAZON_TAG ? 'sponsored nofollow noopener' : 'nofollow noopener'} target="_blank">
-    Check price on Amazon
+  <a class={small ? 'btn btn-sm' : 'btn'} href={buyUrl(asin)} rel={AMAZON_TAG ? 'sponsored nofollow noopener' : 'nofollow noopener'} target="_blank">
+    {label}
   </a>
 )}
