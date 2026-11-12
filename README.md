@@ -49,6 +49,20 @@ python3 extract.py
 Category, filter and brand pages are saved as decoded JSON in `output/json/` until their
 format is added to the extractor.
 
+Summarise the data (which categories had the most Reddit discussion, top products,
+subreddits, use cases):
+
+```bash
+python3 analyze.py
+```
+
+Writes `output/report.md`, `category_summary.csv`, `top_products.csv`, `subreddits.csv`
+and a compact `report_summary.json`. Product scores are a Wilson lower bound on the
+positive/negative split, our own ranking rather than RedditRecs' original order.
+
+`python3 inspect_pages.py` writes `output/page_shapes.json`, a small map of how category,
+filter, series and list pages are structured (used to build the ranking extractor).
+
 ## Notes
 
 - Only snapshots taken **before 2026-11-02** are used. After that date every URL returned a
