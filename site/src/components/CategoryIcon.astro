@@ -1,0 +1,14 @@
+---
+// Line illustrations, one per category (64x64, drawn with currentColor).
+const { slug = '' } = Astro.props;
+const icons: Record<string, string> = {
+  'robot-vacuums': '<circle cx="32" cy="33" r="21"/><circle cx="32" cy="33" r="7"/><path d="M17 20a21 21 0 0 1 30 0"/><path d="M24 50h16"/>',
+  'baby-strollers': '<path d="M10 34c0-12 9-20 22-20v20z"/><path d="M10 34h40l-4 12H18z"/><path d="M44 34l6-18h8"/><circle cx="20" cy="53" r="5"/><circle cx="44" cy="53" r="5"/>',
+  'fitness-trackers': '<rect x="19" y="19" width="26" height="26" rx="8"/><path d="M24 19l2-12h12l2 12M24 45l2 12h12l2-12"/><path d="M26 33h4l2-5 3 9 2-4h3"/>',
+  'ultrawide-monitors': '<path d="M5 16q27 9 54 0v24q-27 9-54 0z"/><path d="M32 44v8M22 55h20"/>',
+  'wireless-earbuds': '<circle cx="21" cy="23" r="9"/><path d="M17 31l-1 18a3 3 0 0 0 6 0l1-18"/><circle cx="43" cy="23" r="9"/><path d="M47 31l1 18a3 3 0 0 1-6 0l-1-18"/>',
+  'vacuum-cleaners': '<g transform="rotate(16 32 48)"><rect x="26" y="4" width="12" height="22" rx="5"/><path d="M38 10h9v11"/><path d="M32 26v22"/></g><rect x="12" y="48" width="38" height="8" rx="4"/>',
+};
+const body = icons[slug] ?? '<rect x="14" y="14" width="36" height="36" rx="6"/>';
+---
+<svg class="cat-icon" viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={body} />

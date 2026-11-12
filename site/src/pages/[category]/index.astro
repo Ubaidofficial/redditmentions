@@ -2,6 +2,9 @@
 import Base from '../../layouts/Base.astro';
 import Sentiment from '../../components/Sentiment.astro';
 import BuyButton from '../../components/BuyButton.astro';
+import Thumb from '../../components/Thumb.astro';
+import PopularityPlot from '../../components/PopularityPlot.astro';
+import { evidence } from '../../lib/format';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -51,6 +54,11 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       ))}
     </div>
 
+    <section class="plot-section">
+      <div class="section-head" style="margin-top:56px"><h2 style="font:400 clamp(30px,3.6vw,42px)/1.05 var(--serif);letter-spacing:-.02em">Popularity <em style="color:var(--orange)">vs.</em> approval</h2></div>
+      <PopularityPlot products={products} category={cat.slug} />
+    </section>
+
     <div class="controls" id="controls" hidden>
       <input id="q" type="search" placeholder={`Search ${cat.name.toLowerCase()}`} aria-label="Search products" />
       <select id="brand" aria-label="Filter by brand">
@@ -65,11 +73,12 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       <span id="count" aria-live="polite"></span>
     </div>
 
-    <div class="thead kicker" aria-hidden="true"><span>Rank</span><span>Product</span><span>Score</span><span>Redditors</span><span></span></div>
+    <div class="thead kicker" aria-hidden="true"><span>Rank</span><span></span><span>Product</span><span>Score</span><span>Redditors</span><span></span></div>
     <ol class="list" id="plist">
       {products.map((p) => (
         <li class="row" data-name={`${p.name} ${p.brand ?? ''}`.toLowerCase()} data-brand={(p.brand ?? '').toLowerCase()} data-rank={p.rank} data-opinions={p.opinions} data-pos={p.share_positive}>
           <span class="rank num">{p.rank}</span>
+          <a href={`/${cat.slug}/${p.slug}/`} tabindex="-1" aria-hidden="true"><Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} /></a>
           <div>
             <h3><a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a></h3>
             {(p.likes[0] || p.dislikes[0]) && (
@@ -83,7 +92,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
             <div class="n"><b class="num">{p.score}</b><small class="num">{p.share_positive}% positive</small></div>
             <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
           </div>
-          <div class="reds num">{fmt(p.opinions)}<small>Redditors</small></div>
+          <div class="reds num">{fmt(p.opinions)}<small>Redditors <span class="ev" role="img" aria-label={evidence(p.opinions).label} title={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span></small></div>
           <div class="acts">
             <a class="textlink" href={`/${cat.slug}/${p.slug}/`}>What they say →</a>
             <BuyButton asin={p.asin} small label="Amazon" />

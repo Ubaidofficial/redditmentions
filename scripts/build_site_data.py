@@ -21,6 +21,8 @@ What it does to the raw archive data:
     link to the original comment, and never writes Reddit usernames
   * folds variants of one product family into a single entry, using the product families
     (series) RedditRecs defined, which extract.py saves in output/json
+  * stores the Amazon-hosted product photo link (never a copy of the photo); the site only
+    shows photos when PUBLIC_PRODUCT_IMAGES=true
   * stores the Amazon product id (ASIN) only, never the old affiliate tag; the link goes to the
     most-discussed variant that has an Amazon listing
 """
@@ -167,7 +169,7 @@ def main():
             continue
         sv = series.get((r["category_slug"], r["model_slug"]))
         key = (c["slug"], ("series|" + product_key(*sv)) if sv else product_key(r["brand_name"], r["model_name"]))
-        g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "is_series": False,
+        g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "img": None, "img_n": -1, "is_series": False,
                                     "users": defaultdict(list), "points": {}, "quotes": [], "subs": set()})
         n = int(num(r["user_opinion_count"]) or 0)
         if sv:
@@ -179,6 +181,11 @@ def main():
         asin = asin_of(r["amazon_url"])
         if asin and n >= g["asin_n"]:
             g["asin"], g["asin_n"] = asin, n
+        # photo: only Amazon-hosted listing images (other retailers' images are not ours to point to);
+        # the most-discussed variant that has one
+        img = (r.get("img_url") or "").strip()
+        if img.startswith("https://m.media-amazon.com/") and n >= g["img_n"]:
+            g["img"], g["img_n"] = img, n
         model_group[(r["category_slug"], r["model_slug"])] = key
     print(f"{len(model_group):,} archived products -> {len(groups):,} after merging duplicates "
           f"({in_series:,} folded into {sum(1 for g in groups.values() if g['is_series']):,} product families)", flush=True)
@@ -246,7 +253,7 @@ def main():
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
-                "asin": g["asin"], "_subs": g["subs"],
+                "asin": g["asin"], "image": g["img"], "_subs": g["subs"],
                 "likes": [{"title": t, "count": k} for t, k in likes],
                 "dislikes": [{"title": t, "count": k} for t, k in dislikes],
                 "quotes": pick_quotes(g["quotes"], "positive", 3) + pick_quotes(g["quotes"], "negative", 2),

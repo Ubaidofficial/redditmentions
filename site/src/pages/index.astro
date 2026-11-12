@@ -1,5 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
+import CategoryIcon from '../components/CategoryIcon.astro';
 import { SITE } from '../config';
 import { categories, getCategory, meta } from '../lib/data';
 
@@ -79,6 +80,7 @@ const fmt = (n: number) => n.toLocaleString('en-US');
         {categories.map((c: any) => (
           <li>
             <a href={`/${c.slug}/`}>
+              <span class="ico"><CategoryIcon slug={c.slug} /></span>
               <span class="name">{c.name}</span>
               <span class="meta num">{c.products} products · {fmt(c.opinions)} opinions</span>
               <span class="go" aria-hidden="true">→</span>

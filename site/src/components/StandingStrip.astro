@@ -1,0 +1,29 @@
+---
+import { outscores, median, fmt } from '../lib/format';
+// Where this product's score sits among every ranked product in the category.
+const { products, product, categoryName } = Astro.props;
+const scores = products.map((p: any) => p.score);
+const lo = Math.min(...scores), hi = Math.max(...scores);
+const pos = (v: number) => (hi === lo ? 50 : ((v - lo) / (hi - lo)) * 100);
+const beats = outscores(products, product.score);
+const med = median(scores);
+const showMed = pos(med) > 22 && pos(med) < 78;
+---
+<section class="standing" aria-label="Where this product sits">
+  <p class="kicker">Where it sits among {products.length} {categoryName.toLowerCase()}</p>
+  <div class="strip">
+    {products.map((p: any) => <i class={p.slug === product.slug ? 'tick me' : 'tick'} style={`left:${pos(p.score)}%`}></i>)}
+    <i class="tick med" style={`left:${pos(med)}%`}></i>
+    <b class="you num" style={`left:${pos(product.score)}%`}>{product.score}</b>
+  </div>
+  <div class="strip-scale num">
+    <span style="left:0">Lowest {lo}</span>
+    {showMed && <span style={`left:${pos(med)}%;transform:translateX(-50%)`}>Median {med}</span>}
+    <span style="right:0">Highest {hi}</span>
+  </div>
+  <p class="standing-line">
+    {beats === 100
+      ? <>Outscores <b>every other</b> ranked product in {categoryName.toLowerCase()}.</>
+      : <>Outscores <b class="num">{beats}%</b> of the ranked {categoryName.toLowerCase()}.</>}
+  </p>
+</section>

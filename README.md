@@ -119,3 +119,7 @@ Environment variables (set in `site/.env` or the build environment):
 - `PUBLIC_AMAZON_TAG`: your Amazon Associates tag. Leave unset until the account is approved; buy
   links are then plain, non-affiliate links and no affiliate disclosure is shown.
 - `PUBLIC_NOINDEX=true`: keep search engines out (previews).
+- `PUBLIC_PRODUCT_IMAGES=true`: show the Amazon-hosted product photos stored in the data. Off by default
+  (the site shows a drawn illustration per category instead). Use it for noindex previews only, and
+  switch to Amazon's official image links once your Associates account is approved: check the Associates
+  Program Operating Agreement before showing Amazon's images on a live site.

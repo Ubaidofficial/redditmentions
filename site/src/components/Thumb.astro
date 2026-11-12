@@ -1,0 +1,12 @@
+---
+import CategoryIcon from './CategoryIcon.astro';
+import { SHOW_IMAGES } from '../config';
+// A product tile: the photo when enabled and available, otherwise a drawn category illustration.
+const { name = '', brand = '', image = null, category = '', size = 'sm' } = Astro.props;
+const photo = SHOW_IMAGES && image ? image : null;
+---
+<div class={`thumb ${size}`}>
+  <CategoryIcon slug={category} />
+  {size === 'lg' && brand && <span class="thumb-brand">{brand}</span>}
+  {photo && <img src={photo} alt={name} loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()" />}
+</div>

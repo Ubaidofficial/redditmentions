@@ -20,3 +20,7 @@ export const NOINDEX: boolean = import.meta.env.PUBLIC_NOINDEX === 'true';
 export function buyUrl(asin: string): string {
   return `https://www.amazon.com/dp/${asin}` + (AMAZON_TAG ? `?tag=${encodeURIComponent(AMAZON_TAG)}` : '');
 }
+
+// Show Amazon-hosted product photos. Off by default: use it for noindex previews, and switch to
+// Amazon's official image links once your Associates account is approved (check the agreement).
+export const SHOW_IMAGES: boolean = import.meta.env.PUBLIC_PRODUCT_IMAGES === 'true';

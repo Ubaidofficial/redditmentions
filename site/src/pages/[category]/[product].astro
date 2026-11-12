@@ -2,6 +2,9 @@
 import Base from '../../layouts/Base.astro';
 import Sentiment from '../../components/Sentiment.astro';
 import BuyButton from '../../components/BuyButton.astro';
+import Thumb from '../../components/Thumb.astro';
+import StandingStrip from '../../components/StandingStrip.astro';
+import { evidence } from '../../lib/format';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -29,8 +32,13 @@ const fmt = (n: number) => n.toLocaleString('en-US');
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {p.name}</p>
 
     <header class="phead">
-      <span class="kicker">No. {p.rank} of {cat.products.length} · {cat.name}</span>
-      <h1>{p.name}</h1>
+      <div class="phead-top">
+        <div>
+          <span class="kicker">No. {p.rank} of {cat.products.length} · {cat.name}</span>
+          <h1>{p.name}</h1>
+        </div>
+        <Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} size="lg" />
+      </div>
       <div class="verdict">
         <div class="s"><b class="num">{p.score}</b><span>Score out of 100</span></div>
         <div><b class="num">{fmt(p.opinions)}</b><span>Redditors counted</span></div>
@@ -38,6 +46,8 @@ const fmt = (n: number) => n.toLocaleString('en-US');
         <div><b class="num">{p.share_negative}%</b><span>negative</span></div>
       </div>
       <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
+      <p class="evline"><span class="ev" role="img" aria-label={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span> {evidence(p.opinions).label}: {fmt(p.opinions)} Redditors counted</p>
+      <StandingStrip products={cat.products} product={p} categoryName={cat.name} />
       {p.asin && <div class="pactions"><BuyButton asin={p.asin} /></div>}
     </header>
 
