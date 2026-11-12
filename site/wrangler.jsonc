@@ -5,5 +5,10 @@
   "assets": {
     "directory": "./dist",
     "not_found_handling": "404-page"
-  }
+  },
+  // Attaches askthesubs.com to this Worker on deploy (the domain's zone must be on the same
+  // Cloudflare account). www.askthesubs.com redirects to it with a Cloudflare redirect rule.
+  "routes": [
+    { "pattern": "askthesubs.com", "custom_domain": true }
+  ]
 }
