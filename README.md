@@ -60,6 +60,18 @@ Writes `output/report.md`, `category_summary.csv`, `top_products.csv`, `subreddi
 and a compact `report_summary.json`. Product scores are a Wilson lower bound on the
 positive/negative split, our own ranking rather than RedditRecs' original order.
 
+Recover RedditRecs' own ranking order (#1, #2, #3 ...):
+
+```bash
+python3 rankings.py
+```
+
+Writes `output/rankings.csv` (every list with its ranked products), `ranking_lists.csv`
+(one row per list), `category_meta.csv` (Reddit users and threads analysed per category)
+and `use_case_evidence.csv` (Reddit snippets behind each "best for" use case). Rankings
+come from the filter pages and from the overall top 5 embedded in series pages; category
+and `/lists` pages were rendered in the browser, so their archived copies hold no rankings.
+
 `python3 inspect_pages.py` writes `output/page_shapes.json`, a small map of how category,
 filter, series and list pages are structured (used to build the ranking extractor).
 
