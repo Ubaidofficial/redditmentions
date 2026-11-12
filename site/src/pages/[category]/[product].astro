@@ -1,0 +1,83 @@
+---
+import Base from '../../layouts/Base.astro';
+import Sentiment from '../../components/Sentiment.astro';
+import BuyButton from '../../components/BuyButton.astro';
+import { categories, getCategory, meta } from '../../lib/data';
+
+export function getStaticPaths() {
+  return categories.flatMap((c: any) =>
+    getCategory(c.slug).products.map((p: any) => ({ params: { category: c.slug, product: p.slug } })),
+  );
+}
+
+const { category, product } = Astro.params;
+const cat = getCategory(category as string);
+const p = cat.products.find((x: any) => x.slug === product);
+const others = cat.products.filter((x: any) => x.slug !== product).slice(0, 3);
+const likes = p.quotes.filter((q: any) => q.sentiment === 'positive');
+const warns = p.quotes.filter((q: any) => q.sentiment === 'negative');
+---
+<Base
+  title={`${p.name}: What Reddit Says (${p.share_positive}% positive)`}
+  description={`${p.opinions} Reddit users on ${p.name}: ${p.share_positive}% positive, ${p.share_negative}% negative, with quotes and links to the original comments.`}
+>
+  <p class="crumbs"><a href="/">Home</a> / <a href={`/${cat.slug}/`}>{cat.name}</a> / {p.name}</p>
+  <h1>{p.name}</h1>
+  <p class="lead">Ranked #{p.rank} of {cat.products.length} {cat.name.toLowerCase()} by Reddit opinion.</p>
+
+  <div class="stats">
+    <div class="stat"><b>{p.opinions}</b><span>Redditors</span></div>
+    <div class="stat"><b>{p.share_positive}%</b><span>positive</span></div>
+    <div class="stat"><b>{p.share_negative}%</b><span>negative</span></div>
+    <div class="stat"><b>{p.score}</b><span>confidence score</span></div>
+  </div>
+  <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
+  <p class="item-actions"><BuyButton asin={p.asin} /></p>
+
+  {p.likes.length > 0 && (
+    <>
+      <h2>What people like</h2>
+      <ul class="chips">{p.likes.map((l: any) => <li class="chip like">+ {l.title} ({l.count})</li>)}</ul>
+    </>
+  )}
+  {p.dislikes.length > 0 && (
+    <>
+      <h2>What people complain about</h2>
+      <ul class="chips">{p.dislikes.map((d: any) => <li class="chip dislike">− {d.title} ({d.count})</li>)}</ul>
+    </>
+  )}
+
+  {likes.length > 0 && <h2>In their words: positive</h2>}
+  {likes.map((q: any) => (
+    <blockquote class="pos">
+      <p>"{q.text}"</p>
+      <footer>r/{q.subreddit} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">original comment</a></footer>
+    </blockquote>
+  ))}
+  {warns.length > 0 && <h2>In their words: negative</h2>}
+  {warns.map((q: any) => (
+    <blockquote class="neg">
+      <p>"{q.text}"</p>
+      <footer>r/{q.subreddit} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">original comment</a></footer>
+    </blockquote>
+  ))}
+
+  <p class="note">
+    Quotes are short excerpts from public Reddit comments, shown with a link to the original. Counts cover comments
+    collected through {meta.comments_through}.
+  </p>
+
+  {others.length > 0 && (
+    <>
+      <h2>Other top {cat.name.toLowerCase()}</h2>
+      <div class="grid">
+        {others.map((o: any) => (
+          <a class="card" href={`/${cat.slug}/${o.slug}/`}>
+            <h3>#{o.rank} {o.name}</h3>
+            <p>{o.share_positive}% positive · {o.opinions} Redditors</p>
+          </a>
+        ))}
+      </div>
+    </>
+  )}
+</Base>

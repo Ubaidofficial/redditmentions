@@ -1,0 +1,11 @@
+---
+import Base from '../layouts/Base.astro';
+import { categories } from '../lib/data';
+---
+<Base title="Page not found">
+  <h1>Page not found</h1>
+  <p class="lead">That page does not exist. Try one of the categories:</p>
+  <div class="grid">
+    {categories.map((c: any) => <a class="card" href={`/${c.slug}/`}><h3>{c.name}</h3></a>)}
+  </div>
+</Base>

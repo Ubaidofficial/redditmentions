@@ -1,7 +1,7 @@
 # Downloaded archive pages and generated data stay local (large, and third-party content)
-pages/
-output/
-index.json
+/pages/
+/output/
+/index.json
 *.pyc
 __pycache__/
 .DS_Store

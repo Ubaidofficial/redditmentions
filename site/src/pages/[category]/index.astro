@@ -1,0 +1,49 @@
+---
+import Base from '../../layouts/Base.astro';
+import Sentiment from '../../components/Sentiment.astro';
+import BuyButton from '../../components/BuyButton.astro';
+import { categories, getCategory, meta } from '../../lib/data';
+
+export function getStaticPaths() {
+  return categories.map((c: any) => ({ params: { category: c.slug } }));
+}
+
+const { category } = Astro.params;
+const cat = getCategory(category as string);
+---
+<Base
+  title={`Best ${cat.name} According to Reddit (${cat.products.length} ranked)`}
+  description={`${cat.name} ranked by what Reddit users recommend and warn against, with links to the original comments.`}
+>
+  <p class="crumbs"><a href="/">Home</a> / {cat.name}</p>
+  <h1>Best {cat.name}, according to Reddit</h1>
+  <p class="lead">
+    {cat.products.length} products with at least {meta.min_opinions} Reddit opinions each, ranked by confidence-weighted
+    approval. Comments collected through {meta.comments_through}.
+  </p>
+
+  <ol class="list">
+    {cat.products.map((p: any) => (
+      <li class="item">
+        <div class="rank">{p.rank}</div>
+        <div>
+          <h3><a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a></h3>
+          <p class="meta">
+            {p.opinions} Redditors · {p.share_positive}% positive · {p.share_negative}% negative · score {p.score}
+          </p>
+          <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
+          {(p.likes.length > 0 || p.dislikes.length > 0) && (
+            <ul class="chips">
+              {p.likes.slice(0, 2).map((l: any) => <li class="chip like">+ {l.title}</li>)}
+              {p.dislikes.slice(0, 2).map((d: any) => <li class="chip dislike">− {d.title}</li>)}
+            </ul>
+          )}
+          <div class="item-actions">
+            <BuyButton asin={p.asin} />
+            <a href={`/${cat.slug}/${p.slug}/`}>What Redditors say</a>
+          </div>
+        </div>
+      </li>
+    ))}
+  </ol>
+</Base>

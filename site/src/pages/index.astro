@@ -1,0 +1,33 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE } from '../config';
+import { categories, meta } from '../lib/data';
+---
+<Base title={`${SITE.name}: ${SITE.tagline}`}>
+  <h1>{SITE.tagline}</h1>
+  <p class="lead">
+    We read what people say about products in Reddit communities, count who recommends and who warns against
+    each one, and rank them. Every quote links back to the original comment.
+  </p>
+
+  <h2>Pick a category</h2>
+  <div class="grid">
+    {categories.map((c: any) => (
+      <a class="card" href={`/${c.slug}/`}>
+        <h3>{c.name}</h3>
+        <p>{c.products} ranked products · {c.opinions.toLocaleString('en-US')} Reddit opinions</p>
+        {c.top_pick && <p>Top pick: {c.top_pick}</p>}
+      </a>
+    ))}
+  </div>
+
+  <h2>How it works</h2>
+  <ol>
+    <li>Reddit comments about each product are collected and sorted into positive, neutral and negative opinions.</li>
+    <li>Each Redditor counts once per product, so one loud commenter cannot swing a ranking.</li>
+    <li>Products are ranked by a confidence score that rewards being both well-liked and widely discussed.</li>
+  </ol>
+  <p class="note">
+    Based on comments collected through {meta.comments_through}. <a href="/methodology/">Read the full method and its limits</a>.
+  </p>
+</Base>
