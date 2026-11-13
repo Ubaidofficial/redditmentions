@@ -13,7 +13,7 @@ Output goes to output/ which is gitignored (third-party content stays on your ma
     python3 redrecs_scrape.py            # crawl everything not yet downloaded
     python3 redrecs_scrape.py --limit 5  # try a few pages first
 """
-import argparse, json, re, sys, time, urllib.request, urllib.error
+import argparse, http.client, json, re, sys, time, urllib.request, urllib.error
 from pathlib import Path
 
 BASE = "https://www.redrecs.com"
@@ -35,7 +35,9 @@ def get(url, retries=5):
             if e.code == 404:
                 return None
             raise
-        except (urllib.error.URLError, TimeoutError):
+        except (OSError, http.client.HTTPException):
+            # URLError, socket.timeout (a different class from TimeoutError before Python 3.10), connection resets,
+            # SSL errors and IncompleteRead all land here: wait and retry.
             time.sleep(delay); delay *= 2
     return None
 
