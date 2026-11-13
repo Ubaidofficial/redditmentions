@@ -61,6 +61,21 @@ GROUP_NAMES = {
     "fitness": "Fitness", "apps-tools": "Apps & Tools", "fashion": "Fashion", "local": "Local", "health-beauty": "Beauty & Skincare",
 }
 
+# Group for each redditrecs category (by site slug). Redrecs lists carry their own group.
+RT_GROUPS = {
+    "Home & Kitchen": ["robot-vacuums", "vacuum-cleaners", "air-fryers", "air-purifiers", "drip-coffee-makers", "electric-coffee-grinders",
+                       "food-processors", "humidifiers", "portable-air-conditioners", "mattress", "standing-desks"],
+    "Tech": ["ultrawide-monitors", "wireless-earbuds", "action-cameras", "dash-cams", "drones", "external-microphones", "gaming-headsets",
+             "gaming-keyboards", "gaming-mice", "home-projectors", "iems", "mesh-wifi-systems", "photo-printers",
+             "portable-bluetooth-speakers", "portable-monitors", "smart-doorbells", "soundbars", "webcams", "wifi-routers",
+             "headphones-over-on-ear", "fitness-trackers"],
+    "Outdoor": ["camping-tents", "outdoor-sleeping-bags", "sleeping-pads", "electric-scooters"],
+    "Fitness": ["trail-running-shoes", "road-running-shoes"],
+    "Baby & Kids": ["baby-strollers", "travel-car-seats"],
+}
+RT_GROUP_OF = {slug: g for g, slugs in RT_GROUPS.items() for slug in slugs}
+
+
 def norm(s):
     """Lowercase ascii words only; '+' becomes 'plus' so Aer+ and Aer stay different."""
     s = re.sub("[\u2122\u00ae\u00a9\u2120]", "", s or "")  # TM, (R), (C), SM: NFKD would turn the TM sign into "tm"
@@ -404,7 +419,7 @@ def main():
             used.add(slug)
             p["rank"], p["slug"] = i, slug
         gk = cat_group.get(c["slug"])
-        group = GROUP_NAMES.get(gk.most_common(1)[0][0], "Tech") if gk else "Tech & Gear"
+        group = RT_GROUP_OF.get(c["slug"]) or (GROUP_NAMES.get(gk.most_common(1)[0][0], "Tech") if gk else "Other")
         with open(os.path.join(a.out, page_slug(c["slug"]) + ".json"), "w", encoding="utf-8") as f:
             json.dump({"slug": page_slug(c["slug"]), "name": c["name"], "source": "redditrecs", "unit": "Redditors",
                        "group": group, "products": ranked}, f, ensure_ascii=False, separators=(",", ":"))

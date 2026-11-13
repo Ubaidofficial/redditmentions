@@ -9,6 +9,15 @@ import { usingFixture, meta } from '../lib/data';
 const { title, description = SITE.description, cta = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
 const noindex = NOINDEX || usingFixture;
+
+// The site has hundreds of topics, so the header menu and footer show a short list of the best-evidenced
+// rankings plus the topic groups, and link to the full list on the home page.
+const groupSlug = (s: string) => s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+const popular = [...meta.categories].filter((c: any) => c.source === 'redditrecs').sort((a: any, b: any) => b.opinions - a.opinions);
+const groupCounts = new Map<string, number>();
+for (const c of meta.categories) groupCounts.set(c.group ?? 'Other', (groupCounts.get(c.group ?? 'Other') ?? 0) + 1);
+const groups = [...groupCounts.entries()].sort((a, b) => b[1] - a[1]);
+const total = meta.categories.length;
 ---
 <!doctype html>
 <html lang="en">
@@ -42,7 +51,13 @@ const noindex = NOINDEX || usingFixture;
           <details class="menu">
             <summary>Categories</summary>
             <div class="menu-panel">
-              {meta.categories.map((c: any) => <a href={`/${c.slug}/`}>{c.name}</a>)}
+              <span class="menu-label">Most-discussed rankings</span>
+              {popular.slice(0, 6).map((c: any) => <a href={`/${c.slug}/`}>{c.name}</a>)}
+              <span class="menu-label">Browse by topic</span>
+              <div class="menu-groups">
+                {groups.map(([g, n]) => <a href={`/#${groupSlug(g)}`}>{g} <small class="num">{n}</small></a>)}
+              </div>
+              <a class="menu-all" href="/#categories">All {total} rankings →</a>
             </div>
           </details>
           <a href="/methodology/">Method</a>
@@ -59,13 +74,23 @@ const noindex = NOINDEX || usingFixture;
             <p>Product rankings from what people say in Reddit communities, with a link to the original comment behind every quote.</p>
           </div>
           <div>
-            <h4>Categories</h4>
-            <ul>{meta.categories.map((c: any) => <li><a href={`/${c.slug}/`}>{c.name}</a></li>)}</ul>
+            <h4>Most discussed</h4>
+            <ul>
+              {popular.slice(0, 8).map((c: any) => <li><a href={`/${c.slug}/`}>{c.name}</a></li>)}
+            </ul>
+          </div>
+          <div>
+            <h4>Browse by topic</h4>
+            <ul>
+              {groups.map(([g, n]) => <li><a href={`/#${groupSlug(g)}`}>{g} <small class="num">{n}</small></a></li>)}
+              <li><a class="all" href="/#categories">All {total} rankings →</a></li>
+            </ul>
           </div>
           <div>
             <h4>Method</h4>
             <ul>
               <li><a href="/methodology/">How rankings are made</a></li>
+              <li><a href="/methodology/#comment-level">Comment-level topics</a></li>
               <li><span style="font-size:15px;opacity:.7">Comments through {meta.comments_through}</span></li>
             </ul>
           </div>

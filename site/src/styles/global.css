@@ -231,13 +231,14 @@ details.how a { text-decoration: underline; text-underline-offset: 3px; }
 .site-footer { background: var(--footer-bg); color: var(--footer-fg); margin-top: 120px; padding: 72px 0 56px; }
 .site-footer .big { font: 400 clamp(56px, 11vw, 168px)/.9 var(--serif); letter-spacing: -.04em; }
 .site-footer .big em { color: var(--orange); font-style: italic; }
-.fgrid { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: 40px; margin-top: 56px; padding-top: 28px; border-top: 1px solid color-mix(in srgb, var(--footer-fg) 22%, transparent); }
+.fgrid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 40px; margin-top: 56px; padding-top: 28px; border-top: 1px solid color-mix(in srgb, var(--footer-fg) 22%, transparent); }
 .site-footer h4 { font: 600 12px/1.2 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: color-mix(in srgb, var(--footer-fg) 55%, transparent); margin-bottom: 14px; }
 .site-footer ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .site-footer a { text-decoration: none; font-size: 15px; } .site-footer a:hover { color: var(--orange); }
 .site-footer p { font-size: 14px; line-height: 1.6; color: color-mix(in srgb, var(--footer-fg) 70%, transparent); max-width: 420px; }
 .site-footer .fine { margin-top: 40px; font-size: 13px; color: color-mix(in srgb, var(--footer-fg) 55%, transparent); }
-@media (max-width: 760px) { .fgrid { grid-template-columns: 1fr; gap: 28px; } }
+@media (max-width: 960px) { .fgrid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .fgrid { grid-template-columns: 1fr; gap: 28px; } }
 
 /* ---- tiles, illustration, plot, standing strip ---- */
 .thumb { position: relative; border: 1px solid var(--rule); width: 76px; height: 76px; flex: none; background: var(--paper-2); color: var(--ink-3); display: grid; place-items: center; overflow: hidden; border-radius: 4px; }
@@ -307,3 +308,16 @@ details.how a { text-decoration: underline; text-underline-offset: 3px; }
 .threads ul { list-style: none; margin: 18px 0 0; padding: 0; max-width: 760px; }
 .threads li { padding: 9px 0; border-bottom: 1px solid var(--rule); text-transform: none; }
 .threads li small { color: var(--ink-3); margin-left: 8px; }
+
+/* header menu + footer: short lists, group links */
+.menu-panel { max-height: calc(100vh - 110px); overflow-y: auto; }
+.menu-label { font: 600 11px/1 var(--sans); letter-spacing: .12em; text-transform: uppercase; color: var(--ink-3); padding: 14px 22px 4px; }
+.menu-label:first-child { padding-top: 8px; }
+.menu-groups { display: flex; flex-wrap: wrap; gap: 6px 8px; padding: 8px 22px 6px; }
+.menu-panel .menu-groups a { display: inline-flex; gap: 6px; padding: 6px 11px; font: 500 14px/1.2 var(--sans); border: 1px solid var(--rule-strong); border-radius: 999px; }
+.menu-panel .menu-groups a small { color: var(--ink-3); font-size: 12px; }
+.menu-panel .menu-groups a:hover small { color: inherit; }
+.menu-panel a.menu-all { font: 600 14px/1 var(--sans); padding: 16px 22px 12px; justify-content: flex-start; border-top: 1px solid var(--rule); margin-top: 10px; }
+.site-footer small { opacity: .55; font-size: 12px; margin-left: 4px; }
+.site-footer a.all { color: var(--orange); font-weight: 600; }
+.group-title { scroll-margin-top: 90px; }
