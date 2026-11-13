@@ -7,8 +7,9 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
-    "deploy": "astro build && node scripts/check-affiliate-links.mjs && npx wrangler@latest deploy",
-    "check:links": "node scripts/check-affiliate-links.mjs"
+    "deploy": "astro build && node scripts/check-affiliate-links.mjs && node scripts/check-banned-terms.mjs && npx wrangler@latest deploy",
+    "check:links": "node scripts/check-affiliate-links.mjs",
+    "check:content": "node scripts/check-banned-terms.mjs"
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.7.4",

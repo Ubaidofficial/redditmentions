@@ -225,8 +225,11 @@ LINK_RE = re.compile(
 )
 
 
+BANNED_RE = re.compile(r"red[ _.\-]?dit[ _.\-]?recs|red[ _.\-]?recs|redrecs|redditrecs|reddit[ _-]recs", re.I)
+
+
 def has_link(text):
-    return bool(LINK_RE.search(text or ""))
+    return bool(LINK_RE.search(text or "")) or bool(BANNED_RE.search(text or ""))  # also skip quotes naming other ranking sites
 
 
 def pick_quotes(cands, sentiment, limit):
