@@ -10,9 +10,10 @@ export const SITE = {
     'AskTheSubs is an independent site. It is not affiliated with, endorsed by, or sponsored by Reddit, Inc.',
 };
 
-// Set PUBLIC_AMAZON_TAG (in site/.env or the build environment) only once you have an
-// approved Amazon Associates account. Without it, buy links are plain, non-affiliate links.
-export const AMAZON_TAG: string = import.meta.env.PUBLIC_AMAZON_TAG ?? '';
+// The Amazon Associates tag lives in one place (affiliate-tag.mjs); there is deliberately no environment override, so a stray
+// .env value cannot put a different tag on the site. scripts/check-affiliate-links.mjs verifies the built output before deploy.
+import { AMAZON_TAG as TAG } from '../affiliate-tag.mjs';
+export const AMAZON_TAG: string = TAG;
 
 // Set PUBLIC_NOINDEX=true to keep search engines out (previews, staging).
 export const NOINDEX: boolean = import.meta.env.PUBLIC_NOINDEX === 'true';
@@ -20,6 +21,9 @@ export const NOINDEX: boolean = import.meta.env.PUBLIC_NOINDEX === 'true';
 // While the site is new only the pages in launch-pages.json are indexable; the rest are published but noindex,follow.
 // Set PUBLIC_INDEX_PAGES=all to index everything.
 export const INDEX_ALL: boolean = import.meta.env.PUBLIC_INDEX_PAGES === 'all';
+
+/** True only for a real Amazon product id (10 characters, A-Z and 0-9). */
+export const isAsin = (v: unknown): v is string => typeof v === 'string' && /^[A-Z0-9]{10}$/.test(v);
 
 export function buyUrl(asin: string): string {
   return `https://www.amazon.com/dp/${asin}` + (AMAZON_TAG ? `?tag=${encodeURIComponent(AMAZON_TAG)}` : '');

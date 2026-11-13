@@ -369,3 +369,5 @@ h1 em, h2 em, h3 em { font-style: normal; }
 @media (max-width: 720px) { .rel ul { grid-template-columns: 1fr; } }
 
 .section-head + .answer { border-top: 0; }
+
+.aff-note { margin-top: 10px; font-size: 13px; color: var(--ink-3); max-width: 420px; }

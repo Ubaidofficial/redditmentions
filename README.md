@@ -81,7 +81,7 @@ filter, series and list pages are structured (used to build the ranking extracto
   "has shut down" page.
 - archive.org throttles fast clients; the downloader backs off automatically. If it is
   throttled constantly, stop it, wait 30–60 minutes and restart with `--gap 1` or `--workers 2`.
-- Amazon links contain the original site's affiliate tag (`redditrecs-g-20`); replace it if
+- Amazon links in the archive contain the original site's affiliate tag (`redditrecs-g-20`); the site builder keeps only the ASIN, and the deploy check fails if that tag ever appears. Replace it if
   links are ever reused.
 - The Reddit comments belong to their authors, and the summaries and rankings are the original
   site's work. Use the data for research; republishing it as-is carries copyright risk.
@@ -138,8 +138,13 @@ npm run deploy     # build, then deploy with wrangler (needs `npx wrangler login
 
 Environment variables (set in `site/.env` or the build environment):
 
-- `PUBLIC_AMAZON_TAG`: your Amazon Associates tag. Leave unset until the account is approved; buy
-  links are then plain, non-affiliate links and no affiliate disclosure is shown.
+- Amazon Associates tag: fixed in `site/affiliate-tag.mjs` (`reddit-mentions-20`); there is no environment override. Every buy link is
+  built in one place (`buyUrl()` in `site/src/config.ts`), carries `rel="sponsored nofollow noopener"`, and links only to
+  `https://www.amazon.com/dp/<ASIN>?tag=...`. `npm run deploy` runs `site/scripts/check-affiliate-links.mjs` first and refuses to deploy
+  if any Amazon link in the built site lacks the tag or has a different one, or if the old redditrecs tag appears anywhere
+  (`npm run check:links` runs it by hand). The builder validates every ASIN (10 characters, A-Z/0-9) so dirty source data cannot
+  produce a broken link. The disclosure "As an Amazon Associate I earn from qualifying purchases." is in the footer, next to the buy
+  buttons and on the method page; check it against the current Associates Operating Agreement.
 - `PUBLIC_NOINDEX=true`: keep search engines out (previews).
 - `PUBLIC_PRODUCT_IMAGES=true`: show the Amazon-hosted product photos stored in the data. Off by default
   (the site shows a drawn illustration per category instead). Use it for noindex previews only, and

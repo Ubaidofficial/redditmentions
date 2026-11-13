@@ -6,6 +6,7 @@ import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
 import { categories, getCategory, meta } from '../../lib/data';
+import { AMAZON_TAG, isAsin } from '../../config';
 import { YEAR, lower, clamp, abs, withBrand, firstThatFits, isAmbiguous, breadcrumbLd, faqLd, webPageLd } from '../../lib/seo';
 
 export function getStaticPaths() {
@@ -70,7 +71,7 @@ const jsonLd = [
   faqLd(faq),
 ];
 ---
-<Base title={title} description={description} jsonLd={jsonLd} cta={!!p.asin}>
+<Base title={title} description={description} jsonLd={jsonLd} cta={isAsin(p.asin)}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {p.name}</p>
 
@@ -96,7 +97,7 @@ const jsonLd = [
         Below is what Redditors praise, what they criticise, and their own words.
       </p>
       <StandingStrip products={cat.products} product={p} categoryName={cat.name} />
-      {p.asin && <div class="pactions"><BuyButton asin={p.asin} /></div>}
+      {isAsin(p.asin) && <div class="pactions"><BuyButton asin={p.asin} />{AMAZON_TAG && <p class="aff-note">Affiliate link. As an Amazon Associate I earn from qualifying purchases.</p>}</div>}
     </header>
 
     {so && (
@@ -177,5 +178,5 @@ const jsonLd = [
     )}
   </div>
 
-  {p.asin && <div class="sticky-cta"><BuyButton asin={p.asin} /></div>}
+  {isAsin(p.asin) && <div class="sticky-cta"><BuyButton asin={p.asin} /></div>}
 </Base>

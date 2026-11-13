@@ -130,6 +130,13 @@ def num(x):
         return None
 
 
+def clean_asin(value):
+    """Amazon product ids are 10 characters, A-Z and 0-9. Source data can be dirty (e.g. a leading tab), so normalise and
+    validate; anything that is not a valid id becomes None (no buy link) instead of a broken link."""
+    a = re.sub(r"\s+", "", str(value or "")).upper()
+    return a if re.fullmatch(r"[A-Z0-9]{10}", a) else None
+
+
 def asin_of(url):
     m = re.search(r"/dp/([A-Z0-9]{10})", url or "")
     return m.group(1) if m else None
@@ -336,7 +343,8 @@ def main():
     rr_by_asin, rr_votes = {}, defaultdict(Counter)
     for L in rr_lists:
         for rp in L["products"]:
-            if rp.get("asin"):
+            rp["asin"] = clean_asin(rp.get("asin"))
+            if rp["asin"]:
                 cur = rr_by_asin.get(rp["asin"])
                 if cur is None or sum(rr_counts(rp)) > sum(rr_counts(cur[1])):
                     rr_by_asin[rp["asin"]] = (L, rp)
@@ -457,7 +465,7 @@ def main():
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
-                "asin": rp.get("asin") or None, "image": img if img.startswith("https://m.media-amazon.com/") else None,
+                "asin": clean_asin(rp.get("asin")), "image": img if img.startswith("https://m.media-amazon.com/") else None,
                 "likes": [], "dislikes": [], "quotes": [],
             })
         if len(ranked) < a.min_products:
