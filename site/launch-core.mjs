@@ -17,13 +17,19 @@ export function dailyCount(cfg, dateStr) {
   return perDayMin + (fnv('release:' + dateStr) % (perDayMax - perDayMin + 1));
 }
 
-/** Number of queued pages released by `now`: day 0 (startDate) releases none; each later day releases dailyCount. */
+/** Is this day (1 = the day after startDate) a release day? For the first `everyOtherDayForFirstDays` days only every 2nd day is. */
+export function isReleaseDay(cfg, dayNumber) {
+  const slow = (cfg.schedule && cfg.schedule.everyOtherDayForFirstDays) || 0;
+  return dayNumber > slow || dayNumber % 2 === 0;
+}
+
+/** Number of queued pages released by `now`: day 0 (startDate) releases none; each release day releases dailyCount. */
 export function releasedQueueCount(cfg, now = new Date()) {
   if (!cfg.schedule || !cfg.schedule.startDate) return 0;
   const start = Date.parse(cfg.schedule.startDate + 'T00:00:00Z');
   const days = Math.max(0, Math.floor((utcMidnight(now) - start) / DAY));
   let n = 0;
-  for (let d = 1; d <= days; d++) n += dailyCount(cfg, new Date(start + d * DAY).toISOString().slice(0, 10));
+  for (let d = 1; d <= days; d++) if (isReleaseDay(cfg, d)) n += dailyCount(cfg, new Date(start + d * DAY).toISOString().slice(0, 10));
   return Math.min(n, (cfg.queue || []).length);
 }
 

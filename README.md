@@ -154,9 +154,10 @@ Environment variables (set in `site/.env` or the build environment):
 ### Indexing while the site is new: a daily release plan
 
 Only a few pages are submitted to search engines at first, then a few more each day. `site/launch-pages.json` holds the plan:
-`paths` and `categories` are live from day 0 (8 pages: home, method, 6 categories), and `queue` (about 335 topics, ordered by
-search demand) is released in order, **5-10 per day** (a different number each day, but identical on every build of the same
-date), starting the day after `schedule.startDate`. The released set is computed from the build date (UTC), so you only need to
+`paths` and `categories` are live from day 0 (8 pages: home, method, 6 categories), and `queue` (about 335 topics, sorted by
+monthly search volume of the plain "best X" query) is released in order, **5-10 per release day** (a different number each day,
+but identical on every build of the same date). For the first `schedule.everyOtherDayForFirstDays` days (10) after
+`schedule.startDate` pages go live every other day; after that, every day. The released set is computed from the build date (UTC), so you only need to
 rebuild and deploy once a day:
 
 ```bash

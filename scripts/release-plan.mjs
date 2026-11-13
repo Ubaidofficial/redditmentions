@@ -10,7 +10,7 @@ const cfg = JSON.parse(readFileSync(new URL('../site/launch-pages.json', import.
 const days = Number(process.argv[2]) || 14;
 const from = releaseDate(process.env.PUBLIC_RELEASE_DATE);
 const plan = planReleases(cfg, from, days);
-console.log(`Start date ${cfg.schedule.startDate}; ${cfg.paths.length + cfg.categories.length} pages live on day 0; ${cfg.queue.length} queued; ${cfg.schedule.perDayMin}-${cfg.schedule.perDayMax} released per day.\n`);
+console.log(`Start date ${cfg.schedule.startDate}; ${cfg.paths.length + cfg.categories.length} pages live on day 0; ${cfg.queue.length} queued; ${cfg.schedule.perDayMin}-${cfg.schedule.perDayMax} released per release day (every other day for the first ${cfg.schedule.everyOtherDayForFirstDays || 0} days, then daily).\n`);
 for (const d of plan) {
   console.log(`${d.date}  live: ${String(d.liveTotal).padStart(3)}  new: ${d.newToday.length ? d.newToday.join(', ') : '-'}`);
 }
