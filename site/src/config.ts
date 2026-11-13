@@ -15,6 +15,10 @@ export const SITE = {
 import { AMAZON_TAG as TAG } from '../affiliate-tag.mjs';
 export const AMAZON_TAG: string = TAG;
 
+// Google Tag Manager container for askthesubs.com (Google's "Install manually" code for it). Set
+// PUBLIC_GTM_ID to another container, or to an empty value to switch tracking off.
+export const GTM_ID: string = import.meta.env.PUBLIC_GTM_ID ?? 'GTM-PX4Q6TN2';
+
 // Set PUBLIC_NOINDEX=true to keep search engines out (previews, staging).
 export const NOINDEX: boolean = import.meta.env.PUBLIC_NOINDEX === 'true';
 

@@ -2,7 +2,7 @@
 import '@fontsource-variable/bricolage-grotesque/wght.css';
 import '@fontsource-variable/instrument-sans/wght.css';
 import '../styles/global.css';
-import { SITE, NOINDEX, INDEX_ALL, AMAZON_TAG } from '../config';
+import { SITE, NOINDEX, INDEX_ALL, AMAZON_TAG, GTM_ID } from '../config';
 import { isLaunchPath } from '../lib/launch';
 import { usingFixture, meta } from '../lib/data';
 
@@ -22,10 +22,25 @@ const groupCounts = new Map<string, number>();
 for (const c of meta.categories) groupCounts.set(c.group ?? 'Other', (groupCounts.get(c.group ?? 'Other') ?? 0) + 1);
 const groups = [...groupCounts.entries()].sort((a, b) => b[1] - a[1]);
 const total = meta.categories.length;
+
+// Tag Manager on every live page, including the ones held back from search (noindex but live): those are real visits.
+// Not on previews or sample-data builds (hardNoindex), where it would count staging as visitors.
+const gtm = !!GTM_ID && !hardNoindex;
 ---
 <!doctype html>
 <html lang="en">
   <head>
+    {gtm && (
+      <>
+        <!-- Google Tag Manager -->
+        <script is:inline async src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`}></script>
+        <script is:inline>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        </script>
+      </>
+    )}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <script is:inline>try{if(localStorage.getItem('theme')==='dark')document.documentElement.setAttribute('data-theme','dark')}catch(e){}</script>
