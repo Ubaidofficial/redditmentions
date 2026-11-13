@@ -1,5 +1,5 @@
 {
- "_readme": "Editable rules applied by build_site_data.py. 'match' is a regular expression tested against the product's normalised name (lowercase words, '+' becomes 'plus', symbols removed). First matching rule wins. 'exclude' drops a product; 'families' merges every product it matches into ONE entry named 'name' (also used just to rename). Check the result with: python3 scripts/build_site_data.py 'rename' gives ONE product a shorter display name ('name' is the full name shown, 'brand' optional); its old web address redirects to the new one automatically. The build prints any names still over 50 characters so you can add rules for them.",
+ "_readme": "Editable rules applied by build_site_data.py. 'match' is a regular expression tested against the product's normalised name (lowercase words, '+' becomes 'plus', symbols removed). First matching rule wins. 'exclude' drops a product; 'families' merges every product it matches into ONE entry named 'name' (also used just to rename). Check the result with: python3 scripts/build_site_data.py 'rename' gives ONE product a shorter display name ('name' is the full name shown, 'brand' optional); its old web address redirects to the new one automatically. The build prints any names still over 50 characters so you can add rules for them. A rename rule may also list 'previous_slugs': earlier web addresses of the page that should redirect straight to the new one.",
  "exclude": [
   {
    "category": "fitness-trackers",
@@ -341,8 +341,11 @@
   {
    "category": "ultrawide-monitors",
    "match": "^samsung 49 odyssey neo g9 dqhd 240hz",
-   "name": "Samsung Odyssey Neo G9 49-inch DQHD",
-   "why": "The archive name is a long list of marketing specs"
+   "name": "Samsung Odyssey Neo G9 G95NA (49-inch)",
+   "why": "The archive name is a long list of marketing specs. Samsung lists this 49-inch DQHD model as the G95NA; the G95NC is the separate 57-inch model.",
+   "previous_slugs": [
+    "samsung-odyssey-neo-g9-49-inch-dqhd"
+   ]
   },
   {
    "category": "baby-strollers",
@@ -361,6 +364,18 @@
    "match": "^narwal freo z10 ultra",
    "name": "Narwal Freo Z10 Ultra",
    "why": "Dropped the generic 'robot vacuum and mop' suffix"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^shark ai ultra self empty robot vacuum base model",
+   "name": "Shark AI Ultra Self-Empty (Base Model)",
+   "why": "Dropped the generic 'Robot Vacuum'"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^kenmore 81714 pet friendly canister vacuum with ultra plush nozzle",
+   "name": "Kenmore 81714 Pet Friendly Canister",
+   "why": "Dropped the accessory description"
   }
  ]
 }
