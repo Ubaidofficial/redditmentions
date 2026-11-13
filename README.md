@@ -172,6 +172,26 @@ rebuild and deploy once a day:
   health-device and safety topics that are not queued; add them by hand if you want them.
 - `PUBLIC_INDEX_PAGES=all` in `site/.env` indexes everything at once; `PUBLIC_NOINDEX=true` overrides all of it (previews).
 
+### Automating the daily release (macOS)
+
+The release plan only advances when the site is rebuilt and deployed, and the site data lives only on your machine (it is not on
+GitHub), so the automation runs on your Mac as a launchd job that wakes every hour:
+
+```bash
+scripts/install-daily-release.sh              # install and start
+scripts/install-daily-release.sh status       # state, last deploy, last log lines
+touch site/.release-paused                    # pause (delete the file to resume)
+scripts/install-daily-release.sh uninstall
+```
+
+Each wake-up does nothing until a new UTC day has started, then runs `npm run deploy` (build, affiliate-link check, deploy) at most
+once per UTC day and checks the live sitemap and home-page robots tag against `scripts/release-plan.mjs`. If the Mac was asleep at
+midnight UTC it runs at the next wake-up; a failed deploy is retried the next hour. It skips (and sends a macOS notification) when the
+project has uncommitted changes or the site data is missing. It does not `git pull` or rebuild the data: it deploys the code as it is on
+disk. Log: `~/.askthesubs/release.log`. Requirements: the Mac must be awake sometime after 00:00 UTC, `wrangler login` must have been done
+once, and the project folder must be readable by background jobs (macOS may block jobs from reading Desktop or Documents until bash is
+given Full Disk Access, or the project is moved elsewhere).
+
 ### Markdown versions and llms.txt
 
 Every released page has a Markdown copy at its address plus `.md` (for example `/best-robot-vacuums-reddit.md`), built from the same
