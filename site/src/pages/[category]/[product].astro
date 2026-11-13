@@ -40,7 +40,7 @@ const so = p.second_opinion;
           <span class="kicker">No. {p.rank} of {cat.products.length} · {cat.name}</span>
           <h1>{p.name} <em>on Reddit</em></h1>
         </div>
-        <Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} size="lg" />
+        <Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} group={cat.group} size="lg" />
       </div>
       <div class="verdict">
         <div class="s"><b class="num">{p.score}</b><span>Score out of 100</span></div>

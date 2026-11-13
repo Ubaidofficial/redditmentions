@@ -37,7 +37,7 @@ if (crowd) picks.push({ label: 'Crowd favourite', p: crowd, note: `Highest appro
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
 ---
 <Base
-  title={`Best ${cat.name} According to Reddit (${products.length} ranked)`}
+  title={`Best ${cat.name} ${new Date().getFullYear()} According to Reddit (${products.length} ranked)`}
   description={`${cat.name} ranked by what Reddit users recommend and warn against, with links to the original comments.`}
 >
   <div class="wrap">
@@ -91,7 +91,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       {products.map((p) => (
         <li class="row" data-name={`${p.name} ${p.brand ?? ''}`.toLowerCase()} data-brand={(p.brand ?? '').toLowerCase()} data-rank={p.rank} data-opinions={p.opinions} data-pos={p.share_positive}>
           <span class="rank num">{p.rank}</span>
-          <a href={`/${cat.slug}/${p.slug}/`} tabindex="-1" aria-hidden="true"><Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} /></a>
+          <a href={`/${cat.slug}/${p.slug}/`} tabindex="-1" aria-hidden="true"><Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} group={cat.group} /></a>
           <div>
             <h3><a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a></h3>
             {(p.likes[0] || p.dislikes[0]) && (

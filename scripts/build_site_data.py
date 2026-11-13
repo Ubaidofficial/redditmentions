@@ -82,6 +82,11 @@ def display_name(brand, name):
     return f"{brand} {name}".strip()
 
 
+def page_slug(base):
+    """Public URL slug: /best-robot-vacuums/. Plain "best X" queries have 30-70x the volume of "best X reddit"."""
+    return base if base.startswith("best-") else "best-" + base
+
+
 def slugify(s):
     return norm(s).replace(" ", "-")[:80].strip("-") or "product"
 
@@ -221,8 +226,8 @@ def main():
         have = {m for c in cats for m in c["members"]}
         for r in read(a.data, "categories.csv"):
             if r["category_slug"] not in have:
-                cats.append({"slug": r["category_slug"], "name": r["category_name"] or r["category_slug"],
-                             "members": [r["category_slug"]]})
+                nm = r["category_name"] or r["category_slug"]
+                cats.append({"slug": slugify(nm), "name": nm, "members": [r["category_slug"]]})  # plural, like the launch six
     member_to_site = {m: c for c in cats for m in c["members"]}
 
     # ---- products (merge duplicates) --------------------------------------
@@ -382,12 +387,13 @@ def main():
                 slug, k = f"{base}-{k}", k + 1
             used.add(slug)
             p["rank"], p["slug"] = i, slug
-        with open(os.path.join(a.out, c["slug"] + ".json"), "w", encoding="utf-8") as f:
-            json.dump({"slug": c["slug"], "name": c["name"], "source": "redditrecs", "unit": "Redditors", "products": ranked},
-                      f, ensure_ascii=False, separators=(",", ":"))
         gk = cat_group.get(c["slug"])
-        meta_cats.append({"slug": c["slug"], "name": c["name"], "source": "redditrecs", "unit": "Redditors",
-                          "group": GROUP_NAMES.get(gk.most_common(1)[0][0], "Tech") if gk else "Tech & Gear",
+        group = GROUP_NAMES.get(gk.most_common(1)[0][0], "Tech") if gk else "Tech & Gear"
+        with open(os.path.join(a.out, page_slug(c["slug"]) + ".json"), "w", encoding="utf-8") as f:
+            json.dump({"slug": page_slug(c["slug"]), "name": c["name"], "source": "redditrecs", "unit": "Redditors",
+                       "group": group, "products": ranked}, f, ensure_ascii=False, separators=(",", ":"))
+        meta_cats.append({"slug": page_slug(c["slug"]), "name": c["name"], "source": "redditrecs", "unit": "Redditors",
+                          "group": group,
                           "products": len(ranked),
                           "opinions": sum(p["opinions"] for p in ranked),
                           "top_pick": ranked[0]["name"] if ranked else None})
@@ -395,7 +401,7 @@ def main():
 
 
     # ---- redrecs-only topics: comment-level rankings, ranked by OUR confidence score ----------
-    used_slugs = {m["slug"] for m in meta_cats} | {c["slug"] for c in cats}
+    used_slugs = {m["slug"] for m in meta_cats} | {page_slug(c["slug"]) for c in cats}
     n_rr_cats = n_rr_dropped = 0
     skip = {g.strip() for g in a.skip_groups.split(",") if g.strip()}
     n_skipped = 0
@@ -426,7 +432,7 @@ def main():
         ranked.sort(key=lambda p: (-p["_s"], -p["opinions"]))
         ranked = ranked[: a.top]
         name = list_topic_name(L["title"])
-        slug = base = slugify(name)
+        slug = base = page_slug(slugify(name))
         k = 2
         while slug in used_slugs:
             slug, k = f"{base}-{k}", k + 1

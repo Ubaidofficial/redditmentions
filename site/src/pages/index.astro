@@ -27,8 +27,8 @@ const groups = [...byGroup.entries()]
       <div>
         <h1>What Reddit <em>actually</em> recommends.</h1>
         <p class="lead">
-          We read the threads, count every voice once, and link every quote back to the source. Rankings come from
-          Reddit opinions only.
+          We read the threads and rank products by what Reddit users say. Where we have the comments, every voice
+          counts once and every quote links back to its source. Rankings come from Reddit opinions only.
         </p>
         <div class="actions">
           <a class="btn btn-ink" href="#categories">Browse the rankings</a>
@@ -64,7 +64,7 @@ const groups = [...byGroup.entries()]
         <li>
           <div class="n">02</div>
           <h3>Count every voice once</h3>
-          <p>One vote per Redditor per product, so a single loud commenter cannot swing a ranking.</p>
+          <p>Where we have the comments, it is one vote per Redditor per product, so a single loud commenter cannot swing a ranking. Topics marked comment-level use comment counts instead.</p>
         </li>
         <li>
           <div class="n">03</div>
@@ -92,7 +92,7 @@ const groups = [...byGroup.entries()]
             {g.items.map((c: any) => (
               <li>
                 <a href={`/${c.slug}/`}>
-                  <span class="ico"><CategoryIcon slug={c.slug} /></span>
+                  <span class="ico"><CategoryIcon slug={c.slug} group={c.group} /></span>
                   <span class="name">{c.name}</span>
                   <span class="meta num">{c.products} products · {fmt(c.opinions)} {c.unit === 'comments' ? 'comments' : 'Redditors'}{c.source === 'redrecs' ? ' · comment-level' : ''}</span>
                   <span class="go" aria-hidden="true">→</span>
