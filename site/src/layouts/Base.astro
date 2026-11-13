@@ -4,9 +4,10 @@ import '@fontsource/instrument-serif/400-italic.css';
 import '@fontsource-variable/instrument-sans/wght.css';
 import '../styles/global.css';
 import { SITE, NOINDEX, AMAZON_TAG, GTM_ID } from '../config';
+import Logo from '../components/Logo.astro';
 import { usingFixture, meta } from '../lib/data';
 
-const { title, description = SITE.description, cta = false } = Astro.props;
+const { title, description = SITE.description, cta = false, jsonld = null } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
 const noindex = NOINDEX || usingFixture;
 // Tag Manager only on the real site: not on previews, staging or sample-data builds.
@@ -39,6 +40,7 @@ const gtm = !!GTM_ID && !noindex;
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content={SITE.name} />
+    {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
   </head>
   <body class={cta ? 'has-cta' : ''}>
     <a class="skip" href="#main">Skip to content</a>
@@ -48,8 +50,8 @@ const gtm = !!GTM_ID && !noindex;
     <header class="site-header">
       <div class="wrap">
         <a class="brand" href="/" aria-label={`${SITE.name} home`}>
-          <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5L15 14H1z" fill="#ff4500"/></svg>
-          {SITE.name}
+          <Logo size={32} />
+          <span class="wordmark"><em>Ask</em>TheSubs</span>
         </a>
         <nav class="nav" aria-label="Main">
           <details class="menu">
@@ -58,6 +60,7 @@ const gtm = !!GTM_ID && !noindex;
               {meta.categories.map((c: any) => <a href={`/${c.slug}/`}>{c.name}</a>)}
             </div>
           </details>
+          <a class="nav-ask" href="/#search">Search rankings</a>
           <a href="/methodology/">Method</a>
         </nav>
       </div>
@@ -65,7 +68,7 @@ const gtm = !!GTM_ID && !noindex;
     <main id="main"><slot /></main>
     <footer class="site-footer">
       <div class="wrap">
-        <div class="big">Ask the <em>subs.</em></div>
+        <div class="big">Ask the <em>subs?</em></div>
         <div class="fgrid">
           <div>
             <h4>About</h4>
