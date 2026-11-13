@@ -19,9 +19,12 @@ const { category, product } = Astro.params;
 const cat = getCategory(category as string);
 const p = cat.products.find((x: any) => x.slug === product);
 const others = cat.products.filter((x: any) => x.slug !== product).slice(0, 3);
+// Never show a link inside a quote (also filtered in the data builder; this guards data files built before that rule).
+const hasLink = (t: string) => /https?:\/\/|www\.|\]\(|\b(?:amzn\.[a-z]+|a\.co|bit\.ly|tinyurl\.com|goo\.gl)\/|\b[\w-]+\.(?:com|net|org|io|co|de|in|uk|asia|to|ca|fr|es|it|jp)\/\S/i.test(t);
+const safeQuotes = p.quotes.filter((q: any) => !hasLink(q.text));
 const quotes = [
-  ...p.quotes.filter((q: any) => q.sentiment === 'positive'),
-  ...p.quotes.filter((q: any) => q.sentiment === 'negative'),
+  ...safeQuotes.filter((q: any) => q.sentiment === 'positive'),
+  ...safeQuotes.filter((q: any) => q.sentiment === 'negative'),
 ];
 const fmt = (n: number) => n.toLocaleString('en-US');
 const unit: string = cat.unit ?? 'Redditors';

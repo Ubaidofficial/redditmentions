@@ -216,6 +216,19 @@ def rr_counts(p):
     return (int(p.get("positiveMentions") or 0), int(p.get("neutralMentions") or 0), int(p.get("negativeMentions") or 0))
 
 
+# Quotes are other people's words: never show a link inside one. Commenters paste Amazon short links (amzn.to, a.co: often their
+# own affiliate links), other Amazon stores and long product URLs, plus broken markdown such as "](https://...". Such quotes are
+# skipped (the next-best quote is used), so the site carries no Amazon link except its own tagged buy buttons.
+LINK_RE = re.compile(
+    r"https?://|www\.|\]\(|\b(?:amzn\.[a-z]+|a\.co|bit\.ly|tinyurl\.com|goo\.gl)/|\b[\w-]+\.(?:com|net|org|io|co|de|in|uk|asia|to|ca|fr|es|it|jp)/\S",
+    re.I,
+)
+
+
+def has_link(text):
+    return bool(LINK_RE.search(text or ""))
+
+
 def pick_quotes(cands, sentiment, limit):
     """Most specific, informative quotes of one sentiment; one per Redditor, no repeats."""
     chosen, seen_users, seen_text = [], set(), set()
@@ -319,7 +332,7 @@ def main():
             spec = num(r["specificity"]) or 0.0
             for q in r["quotes"].split(" || "):
                 q = q.strip()
-                if 50 <= len(q) <= 240:
+                if 50 <= len(q) <= 240 and not has_link(q):
                     g["quotes"].append((spec, user, s, q, r["subreddit"], date, r["comment_permalink"]))
     print(f"{rows:,} opinion rows used; newest comment {through}", flush=True)
 
