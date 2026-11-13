@@ -1,0 +1,340 @@
+{
+ "_readme": "Editable rules applied by build_site_data.py. 'match' is a regular expression tested against the product's normalised name (lowercase words, '+' becomes 'plus', symbols removed). First matching rule wins. 'exclude' drops a product; 'families' merges every product it matches into ONE entry named 'name' (also used just to rename). Check the result with: python3 scripts/build_site_data.py",
+ "exclude": [
+  {
+   "category": "fitness-trackers",
+   "match": "^garmin forerunner (10|101|201|205|210|220|225|230|235|301|305|310xt|410|610|620|645|735xt|910xt|920xt|935)( |$)",
+   "why": "Garmin Forerunners launched 2018 or earlier, or names the archive probably matched by mistake (a 2006 watch with 170 Redditors)"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^lg 34 class 21 9 ultrawide 5k2k led monitor 34wk95u|^lg 38uc99|^lg 38gl950g|^lg 38wk95c",
+   "why": "LG ultrawides from 2016 to 2018"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^roborock s5$",
+   "why": "2018 model"
+  }
+ ],
+ "families": [
+  {
+   "category": "baby-strollers",
+   "match": "^joolz aer",
+   "name": "Joolz Aer",
+   "brand": "Joolz"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^bumbleride indie twin",
+   "name": "Bumbleride Indie Twin",
+   "brand": "Bumbleride"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^bumbleride indie",
+   "name": "Bumbleride Indie",
+   "brand": "Bumbleride"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^baby jogger city tour",
+   "name": "Baby Jogger City Tour",
+   "brand": "Baby Jogger"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^baby jogger city mini gt",
+   "name": "Baby Jogger City Mini GT",
+   "brand": "Baby Jogger"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^mountain buggy duet",
+   "name": "Mountain Buggy Duet",
+   "brand": "Mountain Buggy"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^out n about nipper",
+   "name": "Out'n'About Nipper",
+   "brand": "Out'n'About"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^bob gear alterrain",
+   "name": "BOB Gear Alterrain",
+   "brand": "BOB Gear"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^bob gear revolution",
+   "name": "BOB Gear Revolution",
+   "brand": "BOB Gear"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^thule urban glide",
+   "name": "Thule Urban Glide",
+   "brand": "Thule"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^zoe (the )?tour",
+   "name": "Zoe Tour",
+   "brand": "Zoe"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^cybex (e )?gazelle",
+   "name": "Cybex Gazelle",
+   "brand": "Cybex"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^ergobaby metro",
+   "name": "Ergobaby Metro+",
+   "brand": "Ergobaby"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^mova p10 pro ultra",
+   "name": "MOVA P10 Pro Ultra",
+   "brand": "MOVA"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^roborock s8",
+   "name": "Roborock S8",
+   "brand": "Roborock"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^roborock q5",
+   "name": "Roborock Q5",
+   "brand": "Roborock"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^roborock qx revo",
+   "name": "Roborock QX Revo",
+   "brand": "Roborock"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^dreame l40",
+   "name": "Dreame L40",
+   "brand": "Dreame"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^dreame x40",
+   "name": "Dreame X40",
+   "brand": "Dreame"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^dreame d20 pro plus",
+   "name": "Dreame D20 Pro Plus",
+   "brand": "Dreame"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^shark matrix",
+   "name": "Shark Matrix",
+   "brand": "Shark"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^ecovacs deebot x11",
+   "name": "ECOVACS DEEBOT X11 OmniCyclone",
+   "brand": "ECOVACS"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^garmin instinct 2",
+   "name": "Garmin Instinct 2",
+   "brand": "Garmin"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^garmin instinct 3",
+   "name": "Garmin Instinct 3",
+   "brand": "Garmin"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^garmin instinct crossover",
+   "name": "Garmin Instinct Crossover",
+   "brand": "Garmin"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^garmin forerunner 955",
+   "name": "Garmin Forerunner 955",
+   "brand": "Garmin"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^garmin forerunner 255",
+   "name": "Garmin Forerunner 255",
+   "brand": "Garmin"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^garmin forerunner 245",
+   "name": "Garmin Forerunner 245",
+   "brand": "Garmin"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^coros pace 3",
+   "name": "COROS PACE 3",
+   "brand": "COROS"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": "^coros vertix 2",
+   "name": "COROS VERTIX 2",
+   "brand": "COROS"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^samsung odyssey oled g9",
+   "name": "Samsung Odyssey OLED G9",
+   "brand": "Samsung"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^lg ultragear 45gr95qe|^lg ultragear 45 oled curved wqhd 240hz",
+   "name": "LG UltraGear 45GR95QE-B",
+   "brand": "LG"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^lg ultragear curved gaming monitor 45gr65dc",
+   "name": "LG UltraGear 45GR65DC-B",
+   "brand": "LG"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^lg 34 ultragear 21 9 curved hdr gaming monitor 34gn850",
+   "name": "LG UltraGear 34GN850-B",
+   "brand": "LG"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^lg 39gs95qe",
+   "name": "LG UltraGear 39GS95QE",
+   "brand": "LG"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^lg ultrafine 40 inch nano ips black 5k2k",
+   "name": "LG UltraFine 40U990A-W",
+   "brand": "LG"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^dell ultrasharp 40 curved thunderbolt hub monitor",
+   "name": "Dell UltraSharp 40 U4025QW",
+   "brand": "Dell"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^dell ultrasharp 34 curved thunderbolt hub monitor",
+   "name": "Dell UltraSharp 34 U3425WE",
+   "brand": "Dell"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": "^alienware 34 curved gaming monitor aw3425dwm",
+   "name": "Alienware AW3425DWM",
+   "brand": "Alienware"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^sebo (airbelt )?k\\d",
+   "name": "SEBO Airbelt K",
+   "brand": "SEBO"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^sebo airbelt e",
+   "name": "SEBO Airbelt E",
+   "brand": "SEBO"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^sebo airbelt d",
+   "name": "SEBO Airbelt D",
+   "brand": "SEBO"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^sebo automatic x",
+   "name": "SEBO Automatic X",
+   "brand": "SEBO"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^sebo felix",
+   "name": "SEBO Felix",
+   "brand": "SEBO"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^sebo (mechanical|300)",
+   "name": "SEBO Mechanical",
+   "brand": "SEBO"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^sebo d\\d professional",
+   "name": "SEBO D Professional",
+   "brand": "SEBO"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^miele complete c3",
+   "name": "Miele Complete C3",
+   "brand": "Miele"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^miele (homecare )?classic c1",
+   "name": "Miele Classic C1",
+   "brand": "Miele"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^miele compact c2",
+   "name": "Miele Compact C2",
+   "brand": "Miele"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^miele (boost|blizzard) cx1",
+   "name": "Miele CX1",
+   "brand": "Miele"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^miele guard",
+   "name": "Miele Guard",
+   "brand": "Miele"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^miele s8990",
+   "name": "Miele S8990 UniQ",
+   "brand": "Miele"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^kenmore 400 series",
+   "name": "Kenmore 400 Series",
+   "brand": "Kenmore"
+  }
+ ]
+}

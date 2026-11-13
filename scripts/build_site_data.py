@@ -19,6 +19,9 @@ What it does to the raw archive data:
     negative = 0), and drops products with fewer than --min-opinions Redditors
   * keeps a few short quotes per product (preferring ones that end cleanly) with the
     link to the original comment, and never writes Reddit usernames
+  * applies scripts/curation.json: drops products that are years old and merges product families
+    you define (Miele Complete C3 variants, Garmin Instinct 3 editions...), keeping a list of the
+    variants that were combined. Edit that file to change the rules.
   * folds variants of one product family into a single entry, using the product families
     (series) RedditRecs defined, which extract.py saves in output/json
   * stores the Amazon-hosted product photo link (never a copy of the photo); the site only
@@ -148,6 +151,50 @@ def pick_quotes(cands, sentiment, limit):
     return chosen
 
 
+def tidy_name(s):
+    """Remove trademark signs and accidentally repeated words ("Soundcore Soundcore A20i")."""
+    s = re.sub("[\u2122\u00ae\u00a9\u2120]", "", s or "")
+    s = re.sub(r"\b([A-Za-z]{3,})(\s+\1\b)+", r"\1", s, flags=re.I)
+    return re.sub(r"\s+", " ", s).strip()
+
+
+def load_curation(path):
+    """Editable rules (scripts/curation.json): products to drop, and product families to merge."""
+    empty = {"exclude": [], "families": []}
+    if not path or not os.path.exists(path):
+        return empty
+    with open(path, encoding="utf-8") as f:
+        d = json.load(f)
+    return {k: [dict(r, _re=re.compile(r["match"])) for r in d.get(k, [])] for k in empty}
+
+
+def first_rule(rules, category, normed):
+    for r in rules:
+        if r["category"] == category and r["_re"].search(normed):
+            return r
+    return None
+
+
+def new_group(brand, name):
+    return {"best": -1, "brand": brand, "name": name, "asin": None, "asin_n": -1, "img": None, "img_n": -1,
+            "is_series": True, "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": []}
+
+
+def merge_into(t, g):
+    for u, lst in g["users"].items():
+        t["users"][u].extend(lst)
+    for k, (title, cnt) in g["points"].items():
+        e = t["points"].setdefault(k, [title, 0])
+        e[1] += cnt
+    t["quotes"].extend(g["quotes"])
+    t["subs"] |= g["subs"]
+    t["members"].extend(g["members"])
+    if g["asin"] and g["asin_n"] >= t["asin_n"]:
+        t["asin"], t["asin_n"] = g["asin"], g["asin_n"]
+    if g["img"] and g["img_n"] >= t["img_n"]:
+        t["img"], t["img_n"] = g["img"], g["img_n"]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", default="output", help="folder with the CSVs from extract.py")
@@ -155,6 +202,8 @@ def main():
     ap.add_argument("--min-opinions", type=int, default=25, help="fewest Redditors for a product to be ranked")
     ap.add_argument("--top", type=int, default=40, help="most products per category")
     ap.add_argument("--categories-json", help="optional JSON file replacing the built-in category list")
+    ap.add_argument("--curation", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "curation.json"),
+                    help="rules for dropping old products and merging product families")
     a = ap.parse_args()
 
     cats = json.load(open(a.categories_json, encoding="utf-8")) if a.categories_json else CATEGORIES
@@ -170,8 +219,9 @@ def main():
         sv = series.get((r["category_slug"], r["model_slug"]))
         key = (c["slug"], ("series|" + product_key(*sv)) if sv else product_key(r["brand_name"], r["model_name"]))
         g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "img": None, "img_n": -1, "is_series": False,
-                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set()})
+                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": []})
         n = int(num(r["user_opinion_count"]) or 0)
+        g["members"].append((n, tidy_name(display_name(r["brand_name"], r["model_name"]))))
         if sv:
             g["is_series"], g["brand"], g["name"] = True, sv[0], sv[1]
             in_series += 1
@@ -227,6 +277,28 @@ def main():
         entry = groups[key]["points"].setdefault((kind, title.lower()), [title, 0])
         entry[1] += count
 
+    # ---- curation: drop old products, merge product families ------------------------
+    cur = load_curation(a.curation)
+    kept, dropped, folded = {}, [], 0
+    for key, g in groups.items():
+        normed = norm(tidy_name(display_name(g["brand"], g["name"])))
+        if first_rule(cur["exclude"], key[0], normed):
+            dropped.append(display_name(g["brand"], g["name"]))
+            continue
+        fam = first_rule(cur["families"], key[0], normed)
+        if fam:
+            fkey = (key[0], "family|" + norm(fam["name"]))
+            if fkey not in kept:
+                kept[fkey] = new_group(fam.get("brand") or g["brand"], fam["name"])
+            merge_into(kept[fkey], g)
+            folded += 1
+        else:
+            kept[key] = g
+    groups = kept
+    if cur["exclude"] or cur["families"]:
+        print(f"curation: dropped {len(dropped)} old products, merged {folded} listings into "
+              f"{sum(1 for k in groups if k[1].startswith('family|'))} product families", flush=True)
+
     # ---- rank and write ---------------------------------------------------------
     os.makedirs(a.out, exist_ok=True)
     for old in os.listdir(a.out):
@@ -248,8 +320,15 @@ def main():
             pos, neu, neg = counts["positive"], counts["neutral"], counts["negative"]
             likes = sorted(((t, k) for (kind, _), (t, k) in g["points"].items() if kind == "likes" and k > 0), key=lambda x: -x[1])[:4]
             dislikes = sorted(((t, k) for (kind, _), (t, k) in g["points"].items() if kind == "dislikes" and k > 0), key=lambda x: -x[1])[:4]
+            seen_v, variants = set(), []
+            for _n, vname in sorted(g["members"], key=lambda m: -m[0]):
+                if norm(vname) not in seen_v:
+                    seen_v.add(norm(vname))
+                    variants.append(vname)
+            shown_name = tidy_name(display_name(g["brand"], g["name"]))
+            variants = [v for v in variants if norm(v) != norm(shown_name)][:10] if len(seen_v) > 1 else []
             ranked.append({
-                "name": display_name(g["brand"], g["name"]), "brand": g["brand"], "opinions": n,
+                "name": shown_name, "brand": g["brand"], "opinions": n, "variants": variants,
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
@@ -269,6 +348,18 @@ def main():
                 slug, k = f"{base}-{k}", k + 1
             used.add(slug)
             p["rank"], p["slug"] = i, slug
+        lines = {}
+        for p in ranked:
+            toks = norm(p["name"]).split()
+            btoks = norm(p["brand"]).split()
+            if toks[: len(btoks)] == btoks:
+                toks = toks[len(btoks):]
+            lines.setdefault((norm(p["brand"]), tuple(toks[:2])), []).append(p["name"])
+        maybe = [v for v in lines.values() if len(v) > 1]
+        if maybe:
+            print(f"  possible duplicates in {c['name']} (add a rule to scripts/curation.json if they are one product):")
+            for v in maybe[:12]:
+                print("     - " + " | ".join(x[:40] for x in v))
         with open(os.path.join(a.out, c["slug"] + ".json"), "w", encoding="utf-8") as f:
             json.dump({"slug": c["slug"], "name": c["name"], "products": ranked}, f, ensure_ascii=False, separators=(",", ":"))
         meta_cats.append({"slug": c["slug"], "name": c["name"], "products": len(ranked),

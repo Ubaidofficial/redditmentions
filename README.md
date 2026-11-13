@@ -88,6 +88,14 @@ filter, series and list pages are structured (used to build the ranking extracto
 - Reddit announced in Sept 2026 that its public API will close by March 2027, so a new site
   will need a licensed data source.
 
+## Curating the rankings
+
+`scripts/curation.json` holds the editable rules the data builder applies: `exclude` drops products that
+are years old, and `families` merges variants of one product line into a single entry (and can rename
+long retailer titles). Each rule is a regular expression tested against the product's normalised name.
+After a run the builder prints "possible duplicates" it could not merge, so you can add rules for them.
+Entries that combine several products show "Combines N variants" and list them on their page.
+
 ## Website (AskTheSubs)
 
 `site/` is a static [Astro](https://astro.build) site, served by Cloudflare Workers with static assets

@@ -90,10 +90,20 @@ const fmt = (n: number) => n.toLocaleString('en-US');
       <summary>How is this score calculated?</summary>
       <p>
         Each Redditor counts once. Positive opinions count 1, neutral ½ and negative 0. The score is the lower bound of
-        a 95% confidence interval on that approval rate, so products with few opinions are held back.
-        <a href="/methodology/">Full method</a>.
+        a 95% confidence interval on that approval rate, so products with few opinions are held back.{' '}<a href="/methodology/">Full method</a>.
       </p>
     </details>
+
+    {p.variants && p.variants.length > 0 && (
+      <details class="how">
+        <summary>Combines {p.variants.length}{p.variants.length >= 10 ? '+' : ''} variants of this product</summary>
+        <p>
+          Reddit talks about these as one product line, so their opinions are counted together, with one vote per
+          Redditor.
+        </p>
+        <ul class="variants">{p.variants.map((v: string) => <li>{v}</li>)}</ul>
+      </details>
+    )}
 
     {others.length > 0 && (
       <section class="related">

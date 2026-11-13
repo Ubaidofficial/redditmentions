@@ -81,6 +81,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
           <a href={`/${cat.slug}/${p.slug}/`} tabindex="-1" aria-hidden="true"><Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} /></a>
           <div>
             <h3><a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a></h3>
+            {p.variants && p.variants.length > 0 && <p class="combo">Combines {p.variants.length}{p.variants.length >= 10 ? '+' : ''} variants</p>}
             {(p.likes[0] || p.dislikes[0]) && (
               <p class="says">
                 {p.likes[0] && <span><b class="up">Praised</b> {p.likes[0].title}</span>}
