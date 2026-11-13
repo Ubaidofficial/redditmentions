@@ -2,14 +2,17 @@
 import '@fontsource-variable/bricolage-grotesque/wght.css';
 import '@fontsource-variable/instrument-sans/wght.css';
 import '../styles/global.css';
-import { SITE, NOINDEX, AMAZON_TAG } from '../config';
+import { SITE, NOINDEX, INDEX_ALL, AMAZON_TAG } from '../config';
+import { isLaunchPath } from '../lib/launch';
 import { usingFixture, meta } from '../lib/data';
 
 const { title, description = SITE.description, cta = false, jsonLd = [], ogType = 'website' } = Astro.props;
 const orgLd = { '@context': 'https://schema.org', '@type': 'Organization', name: SITE.name, url: SITE.url, description: SITE.description };
 const ldBlocks = [orgLd, ...jsonLd];
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
-const noindex = NOINDEX || usingFixture;
+const hardNoindex = NOINDEX || usingFixture; // previews and sample data: never indexable, links not followed
+const heldBack = !INDEX_ALL && !isLaunchPath(Astro.url.pathname); // live but not yet submitted: noindex, links still followed
+const noindex = hardNoindex || heldBack;
 
 // The site has hundreds of topics, so the header menu and footer show a short list of the best-evidenced
 // rankings plus the topic groups, and link to the full list on the home page.
@@ -31,7 +34,7 @@ const total = meta.categories.length;
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#ff4500" />
-    <meta name="robots" content={noindex ? 'noindex,nofollow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
+    <meta name="robots" content={hardNoindex ? 'noindex,nofollow' : heldBack ? 'noindex,follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />

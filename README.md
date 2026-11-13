@@ -146,6 +146,19 @@ Environment variables (set in `site/.env` or the build environment):
   switch to Amazon's official image links once your Associates account is approved: check the Associates
   Program Operating Agreement before showing Amazon's images on a live site.
 
+### Indexing while the site is new
+
+Only a few pages are submitted to search engines at first. `site/launch-pages.json` lists them: the home page, the
+method page and 15 category pages (about 17 URLs). The sitemap (`/sitemap-index.xml`) contains only those, and every
+other page is still published but carries `noindex, follow`, so search engines can follow its links but are asked not
+to index it. A sitemap alone would not do that, because the other pages are linked from the home page and category pages.
+
+- To promote more pages, add topic slugs (without `best-` or `-reddit`) to `categories`, or full paths to `products`,
+  in `site/launch-pages.json`, then deploy.
+- To index everything, set `PUBLIC_INDEX_PAGES=all` in `site/.env` and deploy. The sitemap then lists every page.
+- `PUBLIC_NOINDEX=true` overrides both: nothing is indexable, links are not followed (use it for previews).
+- Submit `https://askthesubs.com/sitemap-index.xml` in Google Search Console once the site is public.
+
 ## Publishing
 
 On your own machine, from the project root:

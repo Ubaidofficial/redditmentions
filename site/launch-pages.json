@@ -1,0 +1,10 @@
+{
+  "_comment": "Pages we are asking search engines to index while the site is new. Edit this list to promote more pages. Names are topic slugs without 'best-' / '-reddit', so they survive a change of URL style. Everything else is published but marked noindex,follow until PUBLIC_INDEX_PAGES=all.",
+  "paths": ["/", "/methodology/"],
+  "categories": [
+    "robot-vacuums", "air-fryers", "air-purifiers", "mattress", "vacuum-cleaners", "wireless-earbuds",
+    "portable-air-conditioners", "fitness-trackers", "ultrawide-monitors", "dash-cams", "camping-tents",
+    "standing-desks", "drip-coffee-makers", "action-cameras", "baby-strollers"
+  ],
+  "products": []
+}

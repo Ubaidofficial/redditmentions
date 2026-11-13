@@ -17,6 +17,10 @@ export const AMAZON_TAG: string = import.meta.env.PUBLIC_AMAZON_TAG ?? '';
 // Set PUBLIC_NOINDEX=true to keep search engines out (previews, staging).
 export const NOINDEX: boolean = import.meta.env.PUBLIC_NOINDEX === 'true';
 
+// While the site is new only the pages in launch-pages.json are indexable; the rest are published but noindex,follow.
+// Set PUBLIC_INDEX_PAGES=all to index everything.
+export const INDEX_ALL: boolean = import.meta.env.PUBLIC_INDEX_PAGES === 'all';
+
 export function buyUrl(asin: string): string {
   return `https://www.amazon.com/dp/${asin}` + (AMAZON_TAG ? `?tag=${encodeURIComponent(AMAZON_TAG)}` : '');
 }
