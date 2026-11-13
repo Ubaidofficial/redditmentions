@@ -5,6 +5,7 @@ import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
+import { SITE } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -22,11 +23,22 @@ const quotes = [
   ...p.quotes.filter((q: any) => q.sentiment === 'negative'),
 ];
 const fmt = (n: number) => n.toLocaleString('en-US');
+const abs = (path: string) => new URL(path, SITE.url).toString();
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
+    { '@type': 'ListItem', position: 2, name: cat.name, item: abs(`/${cat.slug}/`) },
+    { '@type': 'ListItem', position: 3, name: p.name, item: abs(`/${cat.slug}/${p.slug}/`) },
+  ],
+};
 ---
 <Base
   title={`${p.name}: What Reddit Says (${p.share_positive}% positive)`}
   description={`${p.opinions} Reddit users on ${p.name}: ${p.share_positive}% positive, ${p.share_negative}% negative, with quotes and links to the original comments.`}
   cta={!!p.asin}
+  jsonld={jsonld}
 >
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {p.name}</p>

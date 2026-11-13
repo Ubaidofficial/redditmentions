@@ -8,6 +8,7 @@ import Logo from '../components/Logo.astro';
 import { usingFixture, meta } from '../lib/data';
 
 const { title, description = SITE.description, cta = false, jsonld = null } = Astro.props;
+const ogImage = new URL('/og.png', SITE.url).toString();
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
 const noindex = NOINDEX || usingFixture;
 // Tag Manager only on the real site: not on previews, staging or sample-data builds.
@@ -40,6 +41,14 @@ const gtm = !!GTM_ID && !noindex;
     <meta property="og:type" content="website" />
     <meta property="og:url" content={canonical} />
     <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:image" content={ogImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${SITE.name}: ${SITE.tagline}`} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImage} />
     {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
   </head>
   <body class={cta ? 'has-cta' : ''}>
@@ -92,5 +101,15 @@ const gtm = !!GTM_ID && !noindex;
         </div>
       </div>
     </footer>
+    <script is:inline>
+      // Close the Categories menu on Escape, on a click elsewhere, and after choosing a link.
+      (function () {
+        var m = document.querySelector('details.menu');
+        if (!m) return;
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && m.open) { m.open = false; m.querySelector('summary').focus(); } });
+        document.addEventListener('click', function (e) { if (m.open && !m.contains(e.target)) m.open = false; });
+        m.addEventListener('click', function (e) { if (e.target.closest('.menu-panel a')) m.open = false; });
+      })();
+    </script>
   </body>
 </html>
