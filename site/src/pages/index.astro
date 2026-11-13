@@ -11,6 +11,15 @@ const stats = meta.stats ?? {
   subreddits: null,
 };
 const fmt = (n: number) => n.toLocaleString('en-US');
+const order = ['Tech', 'Tech & Gear', 'Home & Kitchen', 'Outdoor', 'Fitness', 'Pets', 'Health & Wellness', 'Beauty & Skincare', 'Food', 'Fashion', 'Apps & Tools'];
+const byGroup = new Map<string, any[]>();
+for (const c of categories) {
+  const g = c.group ?? 'Other';
+  byGroup.set(g, [...(byGroup.get(g) ?? []), c]);
+}
+const groups = [...byGroup.entries()]
+  .map(([name, items]) => ({ name, items: items.sort((a: any, b: any) => (a.source === b.source ? b.opinions - a.opinions : a.source === 'redditrecs' ? -1 : 1)) }))
+  .sort((a, b) => (order.indexOf(a.name) + 1 || 99) - (order.indexOf(b.name) + 1 || 99));
 ---
 <Base title={`${SITE.name}: ${SITE.tagline}`}>
   <section class="field">
@@ -70,24 +79,29 @@ const fmt = (n: number) => n.toLocaleString('en-US');
       <div class="figures">
         <div class="figure"><b class="num">{fmt(stats.opinions)}</b><span>Redditors’ opinions counted</span></div>
         <div class="figure"><b class="num">{fmt(stats.products)}</b><span>products ranked</span></div>
-        <div class="figure"><b class="num">{stats.subreddits ? fmt(stats.subreddits) : categories.length}</b><span>{stats.subreddits ? 'Reddit communities read' : 'categories'}</span></div>
+        <div class="figure"><b class="num">{fmt(stats.topics ?? categories.length)}</b><span>topics covered</span></div>
       </div>
     </section>
 
     <section class="section" id="categories">
       <div class="section-head"><h2>Browse by category</h2><span class="kicker">{categories.length} rankings</span></div>
-      <ul class="index">
-        {categories.map((c: any) => (
-          <li>
-            <a href={`/${c.slug}/`}>
-              <span class="ico"><CategoryIcon slug={c.slug} /></span>
-              <span class="name">{c.name}</span>
-              <span class="meta num">{c.products} products · {fmt(c.opinions)} opinions</span>
-              <span class="go" aria-hidden="true">→</span>
-            </a>
-          </li>
-        ))}
-      </ul>
+      {groups.map((g) => (
+        <>
+          <h3 class="group-title">{g.name} <small class="num">{g.items.length}</small></h3>
+          <ul class="index dense">
+            {g.items.map((c: any) => (
+              <li>
+                <a href={`/${c.slug}/`}>
+                  <span class="ico"><CategoryIcon slug={c.slug} /></span>
+                  <span class="name">{c.name}</span>
+                  <span class="meta num">{c.products} products · {fmt(c.opinions)} {c.unit === 'comments' ? 'comments' : 'Redditors'}{c.source === 'redrecs' ? ' · comment-level' : ''}</span>
+                  <span class="go" aria-hidden="true">→</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      ))}
       <p class="fineprint">
         Based on comments collected through {meta.comments_through}, so very new products may be missing.
         <a href="/methodology/">Read the full method and its limits</a>.

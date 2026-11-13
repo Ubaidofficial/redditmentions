@@ -25,6 +25,16 @@ What it does to the raw archive data:
     shows photos when PUBLIC_PRODUCT_IMAGES=true
   * stores the Amazon product id (ASIN) only, never the old affiliate tag; the link goes to the
     most-discussed variant that has an Amazon listing
+
+Second source (--redrecs, default output/redrecs when it exists; see redrecs_scrape.py):
+  * every redditrecs category in categories.csv becomes a site category (the 6 launch ones keep their names);
+  * a redrecs product matched by ASIN (or brand + model inside a topic proven by ASIN matches) is attached to the
+    redditrecs product as `second_opinion` (comment counts, approval, score). The two sources are never summed or
+    averaged: their sentiment methods differ and redrecs comments carry no permalink, so they cannot be de-duplicated;
+  * redrecs lists that match no redditrecs category become their own categories (source "redrecs", unit "comments").
+    These are ranked by OUR confidence score (Wilson lower bound) rather than redrecs' own order, hold no quotes,
+    and show the Reddit threads the analysis read;
+  * redrecs' written text (summaries, comment snippets) is never copied.
 """
 import argparse, csv, json, math, os, re, sys, unicodedata
 from collections import Counter, defaultdict
@@ -44,6 +54,12 @@ SENT = {"positive": "positive", "pos": "positive", "1": "positive",
         "neutral": "neutral", "0": "neutral",
         "negative": "negative", "neg": "negative", "-1": "negative"}
 
+
+GROUP_NAMES = {
+    "home-kitchen": "Home & Kitchen", "beauty-skincare": "Beauty & Skincare", "health-wellness": "Health & Wellness",
+    "tech": "Tech", "entertainment": "Entertainment", "food": "Food", "outdoor": "Outdoor", "pets": "Pets",
+    "fitness": "Fitness", "apps-tools": "Apps & Tools", "fashion": "Fashion", "local": "Local", "health-beauty": "Beauty & Skincare",
+}
 
 def norm(s):
     """Lowercase ascii words only; '+' becomes 'plus' so Aer+ and Aer stay different."""
@@ -130,6 +146,42 @@ def load_series(folder):
     return found
 
 
+def plural_name(name):
+    return name.strip()
+
+
+def list_topic_name(title):
+    """'Best 3D Printers - From Ender to Prusa' -> '3D Printers'."""
+    t = re.split(r"\s+[-\u2013\u2014:|]\s+", (title or "").strip())[0]
+    t = re.sub(r"^best\s+", "", t, flags=re.I).strip()
+    return t[:1].upper() + t[1:]
+
+
+def load_redrecs(folder):
+    """Ranking pages saved by redrecs_scrape.py -> list of dicts, one per list."""
+    out = []
+    if not folder or not os.path.isdir(folder):
+        return out
+    for fn in sorted(os.listdir(folder)):
+        if not fn.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(folder, fn), encoding="utf-8") as f:
+                r = json.load(f)
+        except (OSError, ValueError):
+            continue
+        if r.get("kind") != "analysis":
+            continue
+        a = r["data"]["analysis"]
+        out.append({"slug": a["slug"], "title": a.get("title") or a["slug"], "group": a.get("category") or "",
+                    "products": r["data"].get("products") or [], "threads": r.get("source_urls") or []})
+    return out
+
+
+def rr_counts(p):
+    return (int(p.get("positiveMentions") or 0), int(p.get("neutralMentions") or 0), int(p.get("negativeMentions") or 0))
+
+
 def pick_quotes(cands, sentiment, limit):
     """Most specific, informative quotes of one sentiment; one per Redditor, no repeats."""
     chosen, seen_users, seen_text = [], set(), set()
@@ -155,9 +207,22 @@ def main():
     ap.add_argument("--min-opinions", type=int, default=25, help="fewest Redditors for a product to be ranked")
     ap.add_argument("--top", type=int, default=40, help="most products per category")
     ap.add_argument("--categories-json", help="optional JSON file replacing the built-in category list")
+    ap.add_argument("--opinions", help="path to opinions.csv (default: <data>/opinions.csv); a slimmed file without the quotes column also works")
+    ap.add_argument("--redrecs", default="output/redrecs", help="folder with redrecs_scrape.py output ('' to skip the second source)")
+    ap.add_argument("--skip-groups", default="entertainment,local",
+                    help="redrecs groups left out because they are not shoppable products (movies, local services); '' keeps all")
+    ap.add_argument("--rr-min", type=int, default=25, help="fewest comments for a redrecs-only product to be ranked")
+    ap.add_argument("--all-categories", action=argparse.BooleanOptionalAction, default=True,
+                    help="also build every other category in categories.csv (default on)")
     a = ap.parse_args()
 
     cats = json.load(open(a.categories_json, encoding="utf-8")) if a.categories_json else CATEGORIES
+    if a.all_categories and not a.categories_json and os.path.exists(os.path.join(a.data, "categories.csv")):
+        have = {m for c in cats for m in c["members"]}
+        for r in read(a.data, "categories.csv"):
+            if r["category_slug"] not in have:
+                cats.append({"slug": r["category_slug"], "name": r["category_name"] or r["category_slug"],
+                             "members": [r["category_slug"]]})
     member_to_site = {m: c for c in cats for m in c["members"]}
 
     # ---- products (merge duplicates) --------------------------------------
@@ -170,7 +235,7 @@ def main():
         sv = series.get((r["category_slug"], r["model_slug"]))
         key = (c["slug"], ("series|" + product_key(*sv)) if sv else product_key(r["brand_name"], r["model_name"]))
         g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "img": None, "img_n": -1, "is_series": False,
-                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set()})
+                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "asins": set()})
         n = int(num(r["user_opinion_count"]) or 0)
         if sv:
             g["is_series"], g["brand"], g["name"] = True, sv[0], sv[1]
@@ -179,6 +244,8 @@ def main():
             g["best"], g["brand"], g["name"] = n, r["brand_name"], r["model_name"]
         # buy link: the most-discussed variant that has an Amazon listing
         asin = asin_of(r["amazon_url"])
+        if asin:
+            g["asins"].add(asin)
         if asin and n >= g["asin_n"]:
             g["asin"], g["asin_n"] = asin, n
         # photo: only Amazon-hosted listing images (other retailers' images are not ours to point to);
@@ -192,7 +259,8 @@ def main():
 
     # ---- opinions (one vote per Redditor per product; quotes) -----------
     through, rows = "", 0
-    for r in read(a.data, "opinions.csv"):
+    op_rows = read(os.path.dirname(a.opinions) or ".", os.path.basename(a.opinions)) if a.opinions else read(a.data, "opinions.csv")
+    for r in op_rows:
         key = model_group.get((r["category_slug"], r["model_slug"]))
         if not key:
             continue
@@ -208,7 +276,7 @@ def main():
         date = (r["comment_date"] or "")[:10]
         if date > through:
             through = date
-        if r["quotes"] and r["comment_permalink"]:
+        if r.get("quotes") and r["comment_permalink"]:
             spec = num(r["specificity"]) or 0.0
             for q in r["quotes"].split(" || "):
                 q = q.strip()
@@ -232,6 +300,47 @@ def main():
     for old in os.listdir(a.out):
         if old.endswith(".json"):
             os.remove(os.path.join(a.out, old))
+    rr_lists = load_redrecs(a.redrecs) if a.redrecs else []
+    rr_by_asin, rr_votes = {}, defaultdict(Counter)
+    for L in rr_lists:
+        for rp in L["products"]:
+            if rp.get("asin"):
+                cur = rr_by_asin.get(rp["asin"])
+                if cur is None or sum(rr_counts(rp)) > sum(rr_counts(cur[1])):
+                    rr_by_asin[rp["asin"]] = (L, rp)
+    for key, g in groups.items():
+        for asin in g["asins"]:
+            if asin in rr_by_asin:
+                rr_votes[rr_by_asin[asin][0]["slug"]][key[0]] += 1
+    # a redrecs list is "the same topic" as a site category once two of its products matched by ASIN
+    list_cat = {sl: v.most_common(1)[0][0] for sl, v in rr_votes.items() if sum(v.values()) >= 2}
+    rr_by_name = defaultdict(dict)
+    for L in rr_lists:
+        cslug = list_cat.get(L["slug"])
+        for rp in L["products"]:
+            if cslug:
+                rr_by_name[cslug].setdefault(product_key(rp.get("brand"), rp["name"]), (L, rp))
+    cat_group = {}
+    for sl, cslug in list_cat.items():
+        g0 = next((L["group"] for L in rr_lists if L["slug"] == sl), "")
+        cat_group.setdefault(cslug, Counter())[g0] += 1
+
+    def second_opinion(cat_slug, asins, pk):
+        hit = None
+        for asin in asins:
+            cand = rr_by_asin.get(asin)
+            if cand and (hit is None or sum(rr_counts(cand[1])) > sum(rr_counts(hit[1]))):
+                hit = cand
+        hit = hit or rr_by_name[cat_slug].get(pk)
+        if not hit:
+            return None
+        pos, neu, neg = rr_counts(hit[1])
+        n = pos + neu + neg
+        if n < 10:
+            return None
+        return {"comments": n, "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
+                "score": round(100 * wilson(pos + 0.5 * neu, n)), "rank": hit[1].get("rank"), "of": len(hit[0]["products"])}
+
     meta_cats, all_subs = [], set()
     for c in cats:
         ranked = []
@@ -253,7 +362,8 @@ def main():
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
-                "asin": g["asin"], "image": g["img"], "_subs": g["subs"],
+                "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_asins": g["asins"],
+                "_pk": product_key(g["brand"], g["name"]),
                 "likes": [{"title": t, "count": k} for t, k in likes],
                 "dislikes": [{"title": t, "count": k} for t, k in dislikes],
                 "quotes": pick_quotes(g["quotes"], "positive", 3) + pick_quotes(g["quotes"], "negative", 2),
@@ -264,23 +374,93 @@ def main():
         for i, p in enumerate(ranked, 1):
             p.pop("_s")
             all_subs |= p.pop("_subs")
+            so = second_opinion(c["slug"], p.pop("_asins"), p.pop("_pk")) if rr_lists else None
+            if so:
+                p["second_opinion"] = so
             slug, base, k = slugify(p["name"]), slugify(p["name"]), 2
             while slug in used:
                 slug, k = f"{base}-{k}", k + 1
             used.add(slug)
             p["rank"], p["slug"] = i, slug
         with open(os.path.join(a.out, c["slug"] + ".json"), "w", encoding="utf-8") as f:
-            json.dump({"slug": c["slug"], "name": c["name"], "products": ranked}, f, ensure_ascii=False, separators=(",", ":"))
-        meta_cats.append({"slug": c["slug"], "name": c["name"], "products": len(ranked),
+            json.dump({"slug": c["slug"], "name": c["name"], "source": "redditrecs", "unit": "Redditors", "products": ranked},
+                      f, ensure_ascii=False, separators=(",", ":"))
+        gk = cat_group.get(c["slug"])
+        meta_cats.append({"slug": c["slug"], "name": c["name"], "source": "redditrecs", "unit": "Redditors",
+                          "group": GROUP_NAMES.get(gk.most_common(1)[0][0], "Tech") if gk else "Tech & Gear",
+                          "products": len(ranked),
                           "opinions": sum(p["opinions"] for p in ranked),
                           "top_pick": ranked[0]["name"] if ranked else None})
         print(f"  {c['name']:<22} {len(ranked):>3} ranked products, top: {ranked[0]['name'] if ranked else '-'}")
 
+
+    # ---- redrecs-only topics: comment-level rankings, ranked by OUR confidence score ----------
+    used_slugs = {m["slug"] for m in meta_cats} | {c["slug"] for c in cats}
+    n_rr_cats = n_rr_dropped = 0
+    skip = {g.strip() for g in a.skip_groups.split(",") if g.strip()}
+    n_skipped = 0
+    for L in rr_lists:
+        if L["group"] in skip:
+            n_skipped += 1
+            continue
+        if L["slug"] in list_cat:
+            n_rr_dropped += sum(1 for rp in L["products"] if sum(rr_counts(rp)) >= a.rr_min)
+            continue
+        ranked = []
+        for rp in L["products"]:
+            pos, neu, neg = rr_counts(rp)
+            n = pos + neu + neg
+            if n < a.rr_min:
+                continue
+            img = (rp.get("imageUrl") or "").strip()
+            ranked.append({
+                "name": display_name(rp.get("brand") or "", rp["name"]), "brand": rp.get("brand") or "", "opinions": n,
+                "positive": pos, "neutral": neu, "negative": neg,
+                "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
+                "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
+                "asin": rp.get("asin") or None, "image": img if img.startswith("https://m.media-amazon.com/") else None,
+                "likes": [], "dislikes": [], "quotes": [],
+            })
+        if len(ranked) < 3:
+            continue
+        ranked.sort(key=lambda p: (-p["_s"], -p["opinions"]))
+        ranked = ranked[: a.top]
+        name = list_topic_name(L["title"])
+        slug = base = slugify(name)
+        k = 2
+        while slug in used_slugs:
+            slug, k = f"{base}-{k}", k + 1
+        used_slugs.add(slug)
+        used = set()
+        for i, p in enumerate(ranked, 1):
+            p.pop("_s")
+            ps, pb, kk = slugify(p["name"]), slugify(p["name"]), 2
+            while ps in used:
+                ps, kk = f"{pb}-{kk}", kk + 1
+            used.add(ps)
+            p["rank"], p["slug"] = i, ps
+        threads = list(dict.fromkeys(u for u in L["threads"] if "/comments/" in u))[:12]
+        group = GROUP_NAMES.get(L["group"], L["group"].replace("-", " ").title() or "Other")
+        with open(os.path.join(a.out, slug + ".json"), "w", encoding="utf-8") as f:
+            json.dump({"slug": slug, "name": name, "source": "redrecs", "unit": "comments", "group": group,
+                       "threads_total": len(L["threads"]), "threads": threads, "products": ranked},
+                      f, ensure_ascii=False, separators=(",", ":"))
+        meta_cats.append({"slug": slug, "name": name, "source": "redrecs", "unit": "comments", "group": group,
+                          "products": len(ranked), "opinions": sum(p["opinions"] for p in ranked),
+                          "top_pick": ranked[0]["name"]})
+        n_rr_cats += 1
+    if rr_lists:
+        print(f"  redrecs: {n_rr_cats} comment-level topics added; {len(list_cat)} lists matched a redditrecs category "
+              f"(used as second opinions; {n_rr_dropped} further products there were not shown); "
+              f"{n_skipped} non-shopping lists skipped ({a.skip_groups})")
+
     meta_cats = [m for m in meta_cats if m["products"] > 0]
     with open(os.path.join(a.out, "categories.json"), "w", encoding="utf-8") as f:
-        json.dump({"fixture": False, "comments_through": through, "min_opinions": a.min_opinions,
+        json.dump({"fixture": False, "comments_through": through, "min_opinions": a.min_opinions, "rr_min": a.rr_min,
                    "stats": {"products": sum(m["products"] for m in meta_cats),
-                             "opinions": sum(m["opinions"] for m in meta_cats), "subreddits": len(all_subs)},
+                             "opinions": sum(m["opinions"] for m in meta_cats if m["unit"] == "Redditors"),
+                             "comments": sum(m["opinions"] for m in meta_cats if m["unit"] == "comments"),
+                             "topics": len(meta_cats), "subreddits": len(all_subs)},
                    "categories": meta_cats}, f, ensure_ascii=False, indent=1)
     print(f"wrote {len(meta_cats)} categories to {a.out}")
 

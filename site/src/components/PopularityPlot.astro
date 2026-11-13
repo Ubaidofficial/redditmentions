@@ -1,7 +1,7 @@
 ---
 import { fmt } from '../lib/format';
 // Every product as a dot: how many Redditors were counted (log scale, left to right) against its score (bottom to top).
-const { products, category } = Astro.props;
+const { products, category, unit = 'Redditors' } = Astro.props;
 const xs = products.map((p: any) => p.opinions), ys = products.map((p: any) => p.score);
 const xlo = Math.log10(Math.min(...xs) * 0.8), xhi = Math.log10(Math.max(...xs) * 1.15);
 const ylo = Math.floor((Math.min(...ys) - 3) / 5) * 5, yhi = Math.ceil((Math.max(...ys) + 2) / 5) * 5;
@@ -25,7 +25,7 @@ const side = (p: any) => (px(p.opinions) > 72 ? 'r' : px(p.opinions) < 18 ? 'l' 
       {xticks.map((t) => <div class="gx" style={`left:${px(t)}%`}><span class="num">{fmt(t)}</span></div>)}
       {products.map((p: any) => (
         <a class={p.slug === top.slug ? 'dot hot' : 'dot'} href={`/${category}/${p.slug}/`} style={`left:${px(p.opinions)}%;top:${py(p.score)}%`}
-           title={`${p.name}: score ${p.score}, ${fmt(p.opinions)} Redditors`} aria-label={`${p.name}: score ${p.score}, ${fmt(p.opinions)} Redditors`}></a>
+           title={`${p.name}: score ${p.score}, ${fmt(p.opinions)} ${unit}`} aria-label={`${p.name}: score ${p.score}, ${fmt(p.opinions)} ${unit}`}></a>
       ))}
       {products.filter((p: any) => labelled.has(p.slug)).map((p: any) => (
         <span class={`dlabel ${side(p)}`} style={`left:${px(p.opinions)}%;top:${py(p.score)}%`}>
@@ -33,7 +33,7 @@ const side = (p: any) => (px(p.opinions) > 72 ? 'r' : px(p.opinions) < 18 ? 'l' 
         </span>
       ))}
     </div>
-    <span class="axis-x kicker">Redditors counted →</span>
+    <span class="axis-x kicker">{unit} counted →</span>
     <span class="axis-y kicker">Score ↑</span>
   </div>
   <figcaption>Each dot is a product. Further right means more people were counted; higher means a better score. Products in the top right are both well liked and widely discussed.</figcaption>

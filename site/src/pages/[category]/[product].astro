@@ -22,6 +22,9 @@ const quotes = [
   ...p.quotes.filter((q: any) => q.sentiment === 'negative'),
 ];
 const fmt = (n: number) => n.toLocaleString('en-US');
+const unit: string = cat.unit ?? 'Redditors';
+const commentLevel = cat.source === 'redrecs';
+const so = p.second_opinion;
 ---
 <Base
   title={`${p.name}: What Reddit Says (${p.share_positive}% positive)`}
@@ -35,21 +38,35 @@ const fmt = (n: number) => n.toLocaleString('en-US');
       <div class="phead-top">
         <div>
           <span class="kicker">No. {p.rank} of {cat.products.length} · {cat.name}</span>
-          <h1>{p.name}</h1>
+          <h1>{p.name} <em>on Reddit</em></h1>
         </div>
         <Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} size="lg" />
       </div>
       <div class="verdict">
         <div class="s"><b class="num">{p.score}</b><span>Score out of 100</span></div>
-        <div><b class="num">{fmt(p.opinions)}</b><span>Redditors counted</span></div>
+        <div><b class="num">{fmt(p.opinions)}</b><span>{unit} counted</span></div>
         <div><b class="num">{p.share_positive}%</b><span>positive</span></div>
         <div><b class="num">{p.share_negative}%</b><span>negative</span></div>
       </div>
       <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
-      <p class="evline"><span class="ev" role="img" aria-label={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span> {evidence(p.opinions).label}: {fmt(p.opinions)} Redditors counted</p>
+      <p class="evline"><span class="ev" role="img" aria-label={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span> {evidence(p.opinions).label}: {fmt(p.opinions)} {unit} counted</p>
       <StandingStrip products={cat.products} product={p} categoryName={cat.name} />
       {p.asin && <div class="pactions"><BuyButton asin={p.asin} /></div>}
     </header>
+
+    {so && (
+      <section class="second">
+        <h2>A second <em>opinion</em></h2>
+        <p>
+          A separate analysis of Reddit comments from another source covers this product too: {fmt(so.comments)} comments,
+          {so.share_positive}% positive, {so.share_negative}% negative, score {so.score}/100.
+          {Math.abs(so.share_positive - p.share_positive) >= 15
+            ? ' The two methods disagree by a wide margin, so treat the approval figure with caution.'
+            : ' The two methods broadly agree.'}
+        </p>
+        <p class="sources-note">The sources use different methods and may count some of the same comments, so we show them separately rather than combining them.</p>
+      </section>
+    )}
 
     {(p.likes.length > 0 || p.dislikes.length > 0) && (
       <section class="pair">
@@ -89,7 +106,7 @@ const fmt = (n: number) => n.toLocaleString('en-US');
     <details class="how">
       <summary>How is this score calculated?</summary>
       <p>
-        Each Redditor counts once. Positive opinions count 1, neutral ½ and negative 0. The score is the lower bound of
+        {commentLevel ? 'Each Reddit comment counts once (repeat commenters are not merged).' : 'Each Redditor counts once.'} Positive opinions count 1, neutral ½ and negative 0. The score is the lower bound of
         a 95% confidence interval on that approval rate, so products with few opinions are held back.
         <a href="/methodology/">Full method</a>.
       </p>
@@ -103,7 +120,7 @@ const fmt = (n: number) => n.toLocaleString('en-US');
             <a href={`/${cat.slug}/${o.slug}/`}>
               <span class="kicker">No. {o.rank}</span>
               <span class="nm">{o.name}</span>
-              <span class="m num">{o.share_positive}% positive · {fmt(o.opinions)} Redditors</span>
+              <span class="m num">{o.share_positive}% positive · {fmt(o.opinions)} {unit}</span>
             </a>
           ))}
         </div>

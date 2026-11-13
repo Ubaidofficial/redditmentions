@@ -15,18 +15,25 @@ const { category } = Astro.params;
 const cat = getCategory(category as string);
 const products: any[] = cat.products;
 const fmt = (n: number) => n.toLocaleString('en-US');
+const unit: string = cat.unit ?? 'Redditors';
+const commentLevel = cat.source === 'redrecs';
+// "https://www.reddit.com/r/sub/comments/id/some_title/" -> { sub, title }
+const threads = (cat.threads ?? []).map((u: string) => {
+  const m = u.match(/reddit\.com\/r\/([^/]+)\/comments\/[^/]+\/([^/?#]*)/);
+  return { url: u, sub: m ? m[1] : '', title: m && m[2] ? m[2].replace(/_/g, ' ') : u };
+});
 
 const top = products[0];
 const mostDiscussed = [...products].sort((a, b) => b.opinions - a.opinions)[0];
 const picks = [{ label: 'Top pick', p: top, note: 'Best confidence-weighted score' }];
 if (mostDiscussed.slug !== top.slug) {
-  picks.push({ label: 'Most discussed', p: mostDiscussed, note: `${fmt(mostDiscussed.opinions)} Redditors weighed in` });
+  picks.push({ label: 'Most discussed', p: mostDiscussed, note: `${fmt(mostDiscussed.opinions)} ${unit} weighed in` });
 }
 const shown = new Set(picks.map((k) => k.p.slug));
 const crowd = products
   .filter((p) => p.opinions >= 100 && !shown.has(p.slug))
   .sort((a, b) => b.share_positive - a.share_positive || b.opinions - a.opinions)[0];
-if (crowd) picks.push({ label: 'Crowd favourite', p: crowd, note: 'Highest approval with 100+ Redditors' });
+if (crowd) picks.push({ label: 'Crowd favourite', p: crowd, note: `Highest approval with 100+ ${unit}` });
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
 ---
 <Base
@@ -39,9 +46,15 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       <span class="kicker">{products.length} ranked · through <span style="white-space:nowrap">{meta.comments_through}</span></span>
       <h1>Best {cat.name} <em>according to Reddit</em></h1>
       <p class="lead">
-        Every product below has at least {meta.min_opinions} Redditors behind it. Rankings weigh how many people
-        approve against how many were counted, so a few enthusiasts cannot carry a product to the top.
+        {commentLevel
+          ? `Every product below has at least ${meta.rr_min} Reddit comments behind it. Rankings weigh how many comments approve against how many were counted, so a few enthusiastic comments cannot carry a product to the top.`
+          : `Every product below has at least ${meta.min_opinions} Redditors behind it. Rankings weigh how many people approve against how many were counted, so a few enthusiasts cannot carry a product to the top.`}
       </p>
+      {commentLevel && (
+        <p class="basis"><b>Comment-level topic.</b> These counts come from a third-party analysis of Reddit comments. Unlike our Redditor-level
+          rankings, repeat commenters are not merged and individual comments are not shown. The order is our own confidence score.{" "}
+          <a href="/methodology/#comment-level">Details</a>.</p>
+      )}
     </header>
 
     <div class="answer">
@@ -56,7 +69,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
 
     <section class="plot-section">
       <div class="section-head" style="margin-top:56px"><h2 style="font:400 clamp(30px,3.6vw,42px)/1.05 var(--serif);letter-spacing:-.02em">Popularity <em style="color:var(--orange)">vs.</em> approval</h2></div>
-      <PopularityPlot products={products} category={cat.slug} />
+      <PopularityPlot products={products} category={cat.slug} unit={unit} />
     </section>
 
     <div class="controls" id="controls" hidden>
@@ -73,7 +86,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       <span id="count" aria-live="polite"></span>
     </div>
 
-    <div class="thead kicker" aria-hidden="true"><span>Rank</span><span></span><span>Product</span><span>Score</span><span>Redditors</span><span></span></div>
+    <div class="thead kicker" aria-hidden="true"><span>Rank</span><span></span><span>Product</span><span>Score</span><span>{unit}</span><span></span></div>
     <ol class="list" id="plist">
       {products.map((p) => (
         <li class="row" data-name={`${p.name} ${p.brand ?? ''}`.toLowerCase()} data-brand={(p.brand ?? '').toLowerCase()} data-rank={p.rank} data-opinions={p.opinions} data-pos={p.share_positive}>
@@ -92,7 +105,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
             <div class="n"><b class="num">{p.score}</b><small class="num">{p.share_positive}% positive</small></div>
             <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
           </div>
-          <div class="reds num">{fmt(p.opinions)}<small>Redditors <span class="ev" role="img" aria-label={evidence(p.opinions).label} title={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span></small></div>
+          <div class="reds num">{fmt(p.opinions)}<small>{unit} <span class="ev" role="img" aria-label={evidence(p.opinions).label} title={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span></small></div>
           <div class="acts">
             <a class="textlink" href={`/${cat.slug}/${p.slug}/`}>What they say →</a>
             <BuyButton asin={p.asin} small label="Amazon" />
@@ -100,6 +113,16 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
         </li>
       ))}
     </ol>
+
+    {threads.length > 0 && (
+      <section class="threads">
+        <div class="section-head"><h2 style="font:400 clamp(28px,3.4vw,40px)/1.05 var(--serif);letter-spacing:-.02em">Read the <em style="color:var(--orange)">threads</em></h2></div>
+        <p class="sources-note">A sample of the {fmt(cat.threads_total ?? threads.length)} Reddit threads behind this ranking. Form your own view from the originals.</p>
+        <ul>
+          {threads.map((t: any) => <li><a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a>{t.sub && <small> r/{t.sub}</small>}</li>)}
+        </ul>
+      </section>
+    )}
 
     <p class="foot">
       Score runs from 0 to 100: positive opinions count 1, neutral ½, negative 0, adjusted for how many people were

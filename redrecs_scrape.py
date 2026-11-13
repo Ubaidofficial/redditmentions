@@ -51,13 +51,26 @@ def flight_text(html):
     return "".join(out)
 
 
+def resolve_text_ref(text, ref):
+    """Pages reference long strings as "$<id>"; the string itself is a flight row `<id>:T<hexlen>,<text>`."""
+    if not isinstance(ref, str) or not ref.startswith("$"):
+        return None
+    m = re.search(r"(?m)^" + re.escape(ref[1:]) + r":T([0-9a-f]+),", text)
+    if not m:
+        return None
+    n = int(m.group(1), 16)  # length in UTF-8 bytes
+    return text[m.end():].encode("utf-8")[:n].decode("utf-8", "ignore")
+
+
 def extract(html):
     text = flight_text(html)
     i = text.find('{"analysis":{')
     if i != -1:
         try:
             obj, _ = json.JSONDecoder().raw_decode(text[i:])
-            return {"kind": "analysis", "data": obj}
+            raw = resolve_text_ref(text, obj["analysis"].get("sources"))
+            urls = [u.strip() for u in (raw or "").splitlines() if u.startswith("http")]
+            return {"kind": "analysis", "data": obj, "source_urls": urls}
         except json.JSONDecodeError:
             pass
     title = re.search(r"<title>(.*?)</title>", html, re.S)
@@ -79,6 +92,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--gap", type=float, default=1.5)
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--refresh", action="store_true", help="re-fetch ranking pages saved before source_urls was captured")
     a = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     paths = sitemap_urls()
@@ -88,7 +102,11 @@ def main():
         slug = p.strip("/") or "home"
         f = OUT / (slug.replace("/", "__") + ".json")
         if f.exists():
-            continue
+            if not a.refresh:
+                continue
+            old = json.loads(f.read_text())
+            if old.get("kind") != "analysis" or "source_urls" in old:
+                continue
         html = get(BASE + p)
         if html is None:
             print(f"[{n}/{len(paths)}] FAILED {p}", flush=True)
