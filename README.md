@@ -88,6 +88,27 @@ filter, series and list pages are structured (used to build the ranking extracto
 - Reddit announced in Sept 2026 that its public API will close by March 2027, so a new site
   will need a licensed data source.
 
+## Second source: redrecs.com
+
+`redrecs_scrape.py` crawls redrecs.com's sitemap politely (one request at a time, robots.txt honoured, `/api/` skipped)
+and saves each ranking page's structured data to `output/redrecs/` (gitignored): ranks, products, ASINs, positive /
+neutral / negative comment counts, and the Reddit threads each list read.
+
+```bash
+python3 redrecs_scrape.py            # resumable
+python3 redrecs_scrape.py --refresh  # re-fetch pages saved before thread URLs were captured
+```
+
+`scripts/merge_sources.py` merges it with the redditrecs archive into `output/merged/products.csv` and a
+`match_report.json` (only ~150 products match; the two sources are mostly complementary). Nothing is averaged or
+summed: sentiment methods differ (median gap ~10 points) and redrecs comments carry no permalink, so they cannot be
+de-duplicated. Pass `--rt-opinions output/opinions.csv` to add per-Redditor sentiment, recency and subreddit spread.
+
+`scripts/build_site_data.py` uses both sources automatically when `output/redrecs/` exists: every redditrecs category
+becomes a site category, matched redrecs products get a "second opinion" block, and unmatched redrecs lists become
+"comment-level" topics ranked by our own confidence score. Redrecs' written text is never copied. Skip the second
+source with `--redrecs ""`.
+
 ## Website (AskTheSubs)
 
 `site/` is a static [Astro](https://astro.build) site, served by Cloudflare Workers with static assets
