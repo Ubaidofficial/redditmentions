@@ -82,9 +82,15 @@ def display_name(brand, name):
     return f"{brand} {name}".strip()
 
 
+URL_STYLE = "reddit"
+
+
 def page_slug(base):
-    """Public URL slug: /best-robot-vacuums/. Plain "best X" queries have 30-70x the volume of "best X reddit"."""
-    return base if base.startswith("best-") else "best-" + base
+    """Public URL slug. style "reddit": /best-robot-vacuums-reddit/ (chosen); style "plain": /best-robot-vacuums/.
+    OpenSEO data (Nov 2026) showed plain "best X" queries with 30-70x the volume of "best X reddit"."""
+    base = re.sub(r"^best-", "", base)
+    base = re.sub(r"-reddit$", "", base)
+    return f"best-{base}-reddit" if URL_STYLE == "reddit" else f"best-{base}"
 
 
 def slugify(s):
@@ -214,6 +220,8 @@ def main():
     ap.add_argument("--categories-json", help="optional JSON file replacing the built-in category list")
     ap.add_argument("--opinions", help="path to opinions.csv (default: <data>/opinions.csv); a slimmed file without the quotes column also works")
     ap.add_argument("--redrecs", default="output/redrecs", help="folder with redrecs_scrape.py output ('' to skip the second source)")
+    ap.add_argument("--url-style", choices=["reddit", "plain"], default="reddit",
+                    help="reddit: /best-robot-vacuums-reddit/ (default); plain: /best-robot-vacuums/")
     ap.add_argument("--skip-groups", default="entertainment,local",
                     help="redrecs groups left out because they are not shoppable products (movies, local services); '' keeps all")
     ap.add_argument("--rr-min", type=int, default=25, help="fewest comments for a redrecs-only product to be ranked")
@@ -221,6 +229,8 @@ def main():
                     help="also build every other category in categories.csv (default on)")
     a = ap.parse_args()
 
+    global URL_STYLE
+    URL_STYLE = a.url_style
     cats = json.load(open(a.categories_json, encoding="utf-8")) if a.categories_json else CATEGORIES
     if a.all_categories and not a.categories_json and os.path.exists(os.path.join(a.data, "categories.csv")):
         have = {m for c in cats for m in c["members"]}
@@ -343,8 +353,10 @@ def main():
         n = pos + neu + neg
         if n < 10:
             return None
+        img = (hit[1].get("imageUrl") or "").strip()
         return {"comments": n, "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
-                "score": round(100 * wilson(pos + 0.5 * neu, n)), "rank": hit[1].get("rank"), "of": len(hit[0]["products"])}
+                "score": round(100 * wilson(pos + 0.5 * neu, n)), "rank": hit[1].get("rank"), "of": len(hit[0]["products"]),
+                "_img": img if img.startswith("https://m.media-amazon.com/") else None}
 
     meta_cats, all_subs = [], set()
     for c in cats:
@@ -381,6 +393,9 @@ def main():
             all_subs |= p.pop("_subs")
             so = second_opinion(c["slug"], p.pop("_asins"), p.pop("_pk")) if rr_lists else None
             if so:
+                img = so.pop("_img", None)
+                if img and not p["image"]:  # fill a missing photo from the second source (Amazon-hosted only)
+                    p["image"] = img
                 p["second_opinion"] = so
             slug, base, k = slugify(p["name"]), slugify(p["name"]), 2
             while slug in used:

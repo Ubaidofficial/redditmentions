@@ -107,7 +107,8 @@ de-duplicated. Pass `--rt-opinions output/opinions.csv` to add per-Redditor sent
 `scripts/build_site_data.py` uses both sources automatically when `output/redrecs/` exists: every redditrecs category
 becomes a site category, matched redrecs products get a "second opinion" block, and unmatched redrecs lists become
 "comment-level" topics ranked by our own confidence score. Redrecs' written text is never copied. Skip the second
-source with `--redrecs ""`.
+source with `--redrecs ""`. Page URLs follow `--url-style reddit` (default, `/best-robot-vacuums-reddit/`); use
+`--url-style plain` for `/best-robot-vacuums/`. OpenSEO data showed plain "best X" queries with 30-70x the volume of "best X reddit".
 
 ## Website (AskTheSubs)
 
