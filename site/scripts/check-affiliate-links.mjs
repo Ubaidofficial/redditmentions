@@ -3,9 +3,11 @@
 // or if the old redditrecs tag shows up anywhere. Run automatically before deploy; run by hand with: npm run check:links
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { AMAZON_TAG } from '../affiliate-tag.mjs';
 
-const dist = new URL('../dist/', import.meta.url).pathname;
+// fileURLToPath, not URL.pathname: pathname keeps spaces percent-encoded ("AI%20Projects"), which does not exist on disk.
+const dist = fileURLToPath(new URL('../dist/', import.meta.url));
 const EXT = /\.(html|md|txt|xml|json|js|css|mjs)$/;
 const AMAZON_LINK = /https?:\/\/(?:[a-z0-9-]+\.)?(?:amazon\.[a-z.]+|amzn\.[a-z]+|a\.co)(?:[^\s"'<>)\\]*)/gi;
 const ANY_TAG = /[?&;]tag=([A-Za-z0-9_-]+)/g;
