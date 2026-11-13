@@ -20,7 +20,8 @@ What it does to the raw archive data:
   * keeps a few short quotes per product (preferring ones that end cleanly) with the
     link to the original comment and the title of its thread, and never writes Reddit usernames
   * lists the most-discussed Reddit threads behind each category ("discussions analyzed")
-  * applies scripts/curation.json: drops products that are years old and merges product families
+  * applies scripts/curation.json: drops products that are years old, shortens awkward product
+    names ("rename", with an automatic redirect from the old address) and merges product families
     you define (Miele Complete C3 variants, Garmin Instinct 3 editions...), keeping a list of the
     variants that were combined. Edit that file to change the rules.
   * folds variants of one product family into a single entry, using the product families
@@ -170,7 +171,7 @@ def tidy_name(s):
 
 def load_curation(path):
     """Editable rules (scripts/curation.json): products to drop, and product families to merge."""
-    empty = {"exclude": [], "families": []}
+    empty = {"exclude": [], "families": [], "rename": []}
     if not path or not os.path.exists(path):
         return empty
     with open(path, encoding="utf-8") as f:
@@ -214,6 +215,8 @@ def main():
     ap.add_argument("--min-opinions", type=int, default=25, help="fewest Redditors for a product to be ranked")
     ap.add_argument("--top", type=int, default=40, help="most products per category")
     ap.add_argument("--categories-json", help="optional JSON file replacing the built-in category list")
+    ap.add_argument("--redirects", default=os.path.join("site", "public", "_redirects"),
+                    help="where to write redirects from old product addresses to renamed ones")
     ap.add_argument("--curation", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "curation.json"),
                     help="rules for dropping old products and merging product families")
     a = ap.parse_args()
@@ -297,7 +300,7 @@ def main():
 
     # ---- curation: drop old products, merge product families ------------------------
     cur = load_curation(a.curation)
-    kept, dropped, folded = {}, [], 0
+    kept, dropped, folded, renamed = {}, [], 0, 0
     for key, g in groups.items():
         normed = norm(tidy_name(display_name(g["brand"], g["name"])))
         if first_rule(cur["exclude"], key[0], normed):
@@ -311,18 +314,25 @@ def main():
             merge_into(kept[fkey], g)
             folded += 1
         else:
+            ren = first_rule(cur["rename"], key[0], normed)
+            if ren:
+                # Shorter display name; remember the old address so it can redirect to the new one.
+                g["old_slug"] = slugify(tidy_name(display_name(g["brand"], g["name"])))
+                g["brand"], g["name"] = ren.get("brand") or g["brand"], ren["name"]
+                renamed += 1
             kept[key] = g
     groups = kept
-    if cur["exclude"] or cur["families"]:
+    if cur["exclude"] or cur["families"] or cur["rename"]:
         print(f"curation: dropped {len(dropped)} old products, merged {folded} listings into "
-              f"{sum(1 for k in groups if k[1].startswith('family|'))} product families", flush=True)
+              f"{sum(1 for k in groups if k[1].startswith('family|'))} product families, "
+              f"renamed {renamed}", flush=True)
 
     # ---- rank and write ---------------------------------------------------------
     os.makedirs(a.out, exist_ok=True)
     for old in os.listdir(a.out):
         if old.endswith(".json"):
             os.remove(os.path.join(a.out, old))
-    meta_cats, all_subs = [], set()
+    meta_cats, all_subs, redirects, long_names = [], set(), [], []
     for c in cats:
         ranked = []
         for key, g in groups.items():
@@ -350,7 +360,7 @@ def main():
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
-                "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_threads": g["threads"],
+                "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_threads": g["threads"], "_old_slug": g.get("old_slug"),
                 "likes": [{"title": t, "count": k} for t, k in likes],
                 "dislikes": [{"title": t, "count": k} for t, k in dislikes],
                 "quotes": pick_quotes(g["quotes"], "positive", 3) + pick_quotes(g["quotes"], "negative", 2),
@@ -369,6 +379,11 @@ def main():
                 slug, k = f"{base}-{k}", k + 1
             used.add(slug)
             p["rank"], p["slug"] = i, slug
+            old_slug = p.pop("_old_slug")
+            if old_slug and old_slug != slug:
+                redirects.append((c["slug"], old_slug, slug))
+            if len(p["name"]) > 50:
+                long_names.append((c["slug"], p["name"]))
         lines = {}
         for p in ranked:
             toks = norm(p["name"]).split()
@@ -400,6 +415,17 @@ def main():
                              "opinions": sum(m["opinions"] for m in meta_cats), "subreddits": len(all_subs)},
                    "categories": meta_cats}, f, ensure_ascii=False, indent=1)
     print(f"wrote {len(meta_cats)} categories to {a.out}")
+
+    # Old addresses of renamed products -> new ones (Cloudflare reads _redirects from the site root).
+    os.makedirs(os.path.dirname(a.redirects), exist_ok=True)
+    with open(a.redirects, "w", encoding="utf-8") as f:
+        for cat_slug, old, new in redirects:
+            f.write(f"/{cat_slug}/{old}/ /{cat_slug}/{new}/ 301\n")
+    print(f"wrote {len(redirects)} redirects for renamed products to {a.redirects}")
+    if long_names:
+        print(f"\n{len(long_names)} product names are over 50 characters. Add a 'rename' rule for the ones that read badly:")
+        for cat_slug, name in long_names[:25]:
+            print(f"  [{cat_slug}] {name}")
 
 
 if __name__ == "__main__":
