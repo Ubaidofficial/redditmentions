@@ -1,5 +1,5 @@
 {
- "_readme": "Editable rules applied by build_site_data.py. 'match' is a regular expression tested against the product's normalised name (lowercase words, '+' becomes 'plus', symbols removed). First matching rule wins. 'exclude' drops a product; 'families' merges every product it matches into ONE entry named 'name' (also used just to rename). Check the result with: python3 scripts/build_site_data.py",
+ "_readme": "Editable rules applied by build_site_data.py. 'match' is a regular expression tested against the product's normalised name (lowercase words, '+' becomes 'plus', symbols removed). First matching rule wins. 'exclude' drops a product; 'families' merges every product it matches into ONE entry named 'name' (also used just to rename). Check the result with: python3 scripts/build_site_data.py 'rename' gives ONE product a shorter display name ('name' is the full name shown, 'brand' optional); its old web address redirects to the new one automatically. The build prints any names still over 50 characters so you can add rules for them.",
  "exclude": [
   {
    "category": "fitness-trackers",
@@ -335,6 +335,32 @@
    "match": "^kenmore 400 series",
    "name": "Kenmore 400 Series",
    "brand": "Kenmore"
+  }
+ ],
+ "rename": [
+  {
+   "category": "ultrawide-monitors",
+   "match": "^samsung 49 odyssey neo g9 dqhd 240hz",
+   "name": "Samsung Odyssey Neo G9 49-inch DQHD",
+   "why": "The archive name is a long list of marketing specs"
+  },
+  {
+   "category": "baby-strollers",
+   "match": "^zoe the twin",
+   "name": "Zoe Twin Stroller V1",
+   "why": "Name repeated itself ('Zoe The Twin V1 Zoe Twin Stroller V1')"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^eufy clean l50 ses",
+   "name": "Eufy Clean L50 SES",
+   "why": "Dropped the retailer model code"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^narwal freo z10 ultra",
+   "name": "Narwal Freo Z10 Ultra",
+   "why": "Dropped the generic 'robot vacuum and mop' suffix"
   }
  ]
 }

@@ -96,6 +96,11 @@ long retailer titles). Each rule is a regular expression tested against the prod
 After a run the builder prints "possible duplicates" it could not merge, so you can add rules for them.
 Entries that combine several products show "Combines N variants" and list them on their page.
 
+`rename` gives one product a shorter display name. Its old web address then redirects to the new one
+automatically (the builder writes `site/public/_redirects`, which Cloudflare reads), so existing links and
+search results keep working. After a run the builder also lists any product names over 50 characters, so you
+can add `rename` rules for the ones that read badly.
+
 ## Website (AskTheSubs)
 
 `site/` is a static [Astro](https://astro.build) site, served by Cloudflare Workers with static assets
