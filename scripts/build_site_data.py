@@ -224,6 +224,7 @@ def main():
                     help="reddit: /best-robot-vacuums-reddit/ (default); plain: /best-robot-vacuums/")
     ap.add_argument("--skip-groups", default="entertainment,local",
                     help="redrecs groups left out because they are not shoppable products (movies, local services); '' keeps all")
+    ap.add_argument("--min-products", type=int, default=3, help="fewest ranked products for a category page to be published")
     ap.add_argument("--rr-min", type=int, default=25, help="fewest comments for a redrecs-only product to be ranked")
     ap.add_argument("--all-categories", action=argparse.BooleanOptionalAction, default=True,
                     help="also build every other category in categories.csv (default on)")
@@ -442,7 +443,7 @@ def main():
                 "asin": rp.get("asin") or None, "image": img if img.startswith("https://m.media-amazon.com/") else None,
                 "likes": [], "dislikes": [], "quotes": [],
             })
-        if len(ranked) < 3:
+        if len(ranked) < a.min_products:
             continue
         ranked.sort(key=lambda p: (-p["_s"], -p["opinions"]))
         ranked = ranked[: a.top]
@@ -475,7 +476,7 @@ def main():
               f"(used as second opinions; {n_rr_dropped} further products there were not shown); "
               f"{n_skipped} non-shopping lists skipped ({a.skip_groups})")
 
-    meta_cats = [m for m in meta_cats if m["products"] > 0]
+    meta_cats = [m for m in meta_cats if m["products"] >= max(1, a.min_products)]
     with open(os.path.join(a.out, "categories.json"), "w", encoding="utf-8") as f:
         json.dump({"fixture": False, "comments_through": through, "min_opinions": a.min_opinions, "rr_min": a.rr_min,
                    "stats": {"products": sum(m["products"] for m in meta_cats),
