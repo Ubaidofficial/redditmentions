@@ -3,16 +3,29 @@ import '@fontsource/instrument-serif/400.css';
 import '@fontsource/instrument-serif/400-italic.css';
 import '@fontsource-variable/instrument-sans/wght.css';
 import '../styles/global.css';
-import { SITE, NOINDEX, AMAZON_TAG } from '../config';
+import { SITE, NOINDEX, AMAZON_TAG, GTM_ID } from '../config';
 import { usingFixture, meta } from '../lib/data';
 
 const { title, description = SITE.description, cta = false } = Astro.props;
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
 const noindex = NOINDEX || usingFixture;
+// Tag Manager only on the real site: not on previews, staging or sample-data builds.
+const gtm = !!GTM_ID && !noindex;
 ---
 <!doctype html>
 <html lang="en">
   <head>
+    {gtm && (
+      <>
+        <!-- Google Tag Manager -->
+        <script is:inline async src={`https://www.googletagmanager.com/gtm.js?id=${GTM_ID}`}></script>
+        <script is:inline>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){dataLayer.push(arguments);}
+          gtag('js', new Date());
+        </script>
+      </>
+    )}
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{title}</title>
