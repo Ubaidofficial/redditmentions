@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import CategoryIcon from '../components/CategoryIcon.astro';
 import { SITE } from '../config';
+import { YEAR, abs, clamp, itemListLd } from '../lib/seo';
 import { categories, getCategory, meta } from '../lib/data';
 
 const sample = getCategory(categories[0].slug);
@@ -22,7 +23,14 @@ const groups = [...byGroup.entries()]
   .map(([name, items]) => ({ name, items: items.sort((a: any, b: any) => (a.source === b.source ? b.opinions - a.opinions : a.source === 'redditrecs' ? -1 : 1)) }))
   .sort((a, b) => (order.indexOf(a.name) + 1 || 99) - (order.indexOf(b.name) + 1 || 99));
 ---
-<Base title={`${SITE.name}: ${SITE.tagline}`}>
+<Base
+  title={`Best Products According to Reddit (${YEAR}) | ${SITE.name}`}
+  description={clamp(`The best products Reddit recommends, ranked from real Reddit opinions: ${categories.length} rankings, from robot vacuums to air fryers, with links to the original comments.`)}
+  jsonLd={[
+    { '@context': 'https://schema.org', '@type': 'WebSite', name: SITE.name, url: SITE.url, description: SITE.description },
+    itemListLd('Best products according to Reddit', categories.slice(0, 20).map((c: any) => ({ name: `Best ${c.name} on Reddit`, url: abs(`/${c.slug}/`) }))),
+  ]}
+>
   <section class="field">
     <div class="wrap">
       <div>

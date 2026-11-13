@@ -6,6 +6,7 @@ import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
 import { categories, getCategory, meta } from '../../lib/data';
+import { YEAR, lower, clamp, abs, withBrand, firstThatFits, isAmbiguous, breadcrumbLd, faqLd, webPageLd } from '../../lib/seo';
 
 export function getStaticPaths() {
   return categories.flatMap((c: any) =>
@@ -25,12 +26,51 @@ const fmt = (n: number) => n.toLocaleString('en-US');
 const unit: string = cat.unit ?? 'Redditors';
 const commentLevel = cat.source === 'redrecs';
 const so = p.second_opinion;
+
+// ---- SEO copy from this product's own data ----------------------------------------------------------------
+const x = lower(cat.name);
+const unitL = unit === 'comments' ? 'Reddit comments' : 'Redditors';
+const outscored = Math.round((100 * cat.products.filter((o: any) => o.score < p.score).length) / Math.max(1, cat.products.length - 1));
+const titleName = isAmbiguous(p.name) ? `${p.name} (${cat.name})` : p.name;
+const title = firstThatFits(
+  [
+    withBrand(`${titleName} Reddit Review ${YEAR}: ${p.share_positive}% Positive`, 66),
+    `${titleName} Reddit Review ${YEAR}: ${p.share_positive}% Positive`,
+    `${titleName} Reddit Review ${YEAR}`,
+    `${titleName} Reddit Review`,
+  ],
+  78,
+);
+const description = clamp(
+  `Is the ${p.name} worth it? ${fmt(p.opinions)} ${unitL} on Reddit: ${p.share_positive}% positive, ${p.share_negative}% negative. See what Redditors praise and criticise, with links to the original comments.`,
+);
+const faq = [
+  {
+    q: `Is the ${p.name} good, according to Reddit?`,
+    a: `${fmt(p.opinions)} ${unitL} weighed in on the ${p.name}: ${p.share_positive}% were positive and ${p.share_negative}% negative. That gives it a score of ${p.score}/100 and puts it No. ${p.rank} of ${cat.products.length} ${x} on our Reddit-based ranking, ahead of ${outscored}% of them.`,
+  },
+  ...(p.dislikes.length
+    ? [{ q: `What do Redditors dislike about the ${p.name}?`, a: `The most common criticisms are ${p.dislikes.slice(0, 3).map((d: any) => d.title.toLowerCase()).join(', ')}.` }]
+    : []),
+  ...(p.likes.length
+    ? [{ q: `What do Redditors like about the ${p.name}?`, a: `The qualities Reddit praises most are ${p.likes.slice(0, 3).map((l: any) => l.title.toLowerCase()).join(', ')}.` }]
+    : []),
+  {
+    q: `How does the ${p.name} compare to other ${x} on Reddit?`,
+    a: `It ranks No. ${p.rank} of ${cat.products.length} ${x}. The top pick is ${cat.products[0].name}, with a score of ${cat.products[0].score}/100. See the full list of best ${x} on Reddit for every comparison.`,
+  },
+];
+const jsonLd = [
+  breadcrumbLd([
+    { name: 'Home', url: abs('/') },
+    { name: `Best ${cat.name}`, url: abs(`/${cat.slug}/`) },
+    { name: p.name, url: abs(`/${cat.slug}/${p.slug}/`) },
+  ]),
+  webPageLd(`${p.name} on Reddit`, abs(`/${cat.slug}/${p.slug}/`), description),
+  faqLd(faq),
+];
 ---
-<Base
-  title={`${p.name}: What Reddit Says (${p.share_positive}% positive)`}
-  description={`${p.opinions} Reddit users on ${p.name}: ${p.share_positive}% positive, ${p.share_negative}% negative, with quotes and links to the original comments.`}
-  cta={!!p.asin}
->
+<Base title={title} description={description} jsonLd={jsonLd} cta={!!p.asin}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {p.name}</p>
 
@@ -50,6 +90,11 @@ const so = p.second_opinion;
       </div>
       <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
       <p class="evline"><span class="ev" role="img" aria-label={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span> {evidence(p.opinions).label}: {fmt(p.opinions)} {unit} counted</p>
+      <p class="says-lead">
+        What does Reddit think of the {p.name}? Across {fmt(p.opinions)} {unitL}, {p.share_positive}% are positive and {p.share_negative}% negative,
+        which makes it No. {p.rank} of {cat.products.length} {x} in our Reddit ranking and a higher score than {outscored}% of them.
+        Below is what Redditors praise, what they criticise, and their own words.
+      </p>
       <StandingStrip products={cat.products} product={p} categoryName={cat.name} />
       {p.asin && <div class="pactions"><BuyButton asin={p.asin} /></div>}
     </header>
@@ -58,8 +103,7 @@ const so = p.second_opinion;
       <section class="second">
         <h2>A second <em>opinion</em></h2>
         <p>
-          A separate analysis of Reddit comments from another source covers this product too: {fmt(so.comments)} comments,
-          {so.share_positive}% positive, {so.share_negative}% negative, score {so.score}/100.
+          A separate analysis of Reddit comments from another source covers this product too: {fmt(so.comments)} comments, {so.share_positive}% positive, {so.share_negative}% negative, score {so.score}/100.
           {Math.abs(so.share_positive - p.share_positive) >= 15
             ? ' The two methods disagree by a wide margin, so treat the approval figure with caution.'
             : ' The two methods broadly agree.'}
@@ -71,13 +115,13 @@ const so = p.second_opinion;
     {(p.likes.length > 0 || p.dislikes.length > 0) && (
       <section class="pair">
         <div class="good">
-          <h2>Praised for</h2>
+          <h2>What Reddit praises about the {p.name}</h2>
           {p.likes.length > 0
             ? <ul>{p.likes.map((l: any) => <li><span>{l.title}</span><small>{l.count} mentions</small></li>)}</ul>
             : <p class="empty">Nothing stands out yet.</p>}
         </div>
         <div class="bad">
-          <h2>Criticised for</h2>
+          <h2>What Redditors criticise</h2>
           {p.dislikes.length > 0
             ? <ul>{p.dislikes.map((d: any) => <li><span>{d.title}</span><small>{d.count} mentions</small></li>)}</ul>
             : <p class="empty">No recurring complaints.</p>}
@@ -87,7 +131,7 @@ const so = p.second_opinion;
 
     {quotes.length > 0 && (
       <section class="receipts">
-        <h2>The <em>receipts</em></h2>
+        <h2>Redditors on the {p.name}: <em>the receipts</em></h2>
         {quotes.map((q: any) => (
           <blockquote class={q.sentiment === 'negative' ? 'neg' : 'pos'}>
             <div>
@@ -103,6 +147,11 @@ const so = p.second_opinion;
       </section>
     )}
 
+    <section class="faq">
+      <div class="section-head"><h2>{p.name} on Reddit: questions answered</h2></div>
+      {faq.map((f) => <div class="qa"><h3>{f.q}</h3><p>{f.a}</p></div>)}
+    </section>
+
     <details class="how">
       <summary>How is this score calculated?</summary>
       <p>
@@ -114,7 +163,7 @@ const so = p.second_opinion;
 
     {others.length > 0 && (
       <section class="related">
-        <div class="section-head"><h2 style="font:400 clamp(32px,4vw,48px)/1.05 var(--serif);letter-spacing:-.02em">More {cat.name.toLowerCase()}</h2></div>
+        <div class="section-head"><h2>More {x} Reddit recommends</h2></div>
         <div class="answer" style="border-top:0">
           {others.map((o: any) => (
             <a href={`/${cat.slug}/${o.slug}/`}>

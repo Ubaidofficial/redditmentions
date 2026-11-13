@@ -6,6 +6,8 @@ import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
 import { evidence } from '../../lib/format';
 import { categories, getCategory, meta } from '../../lib/data';
+import { AMAZON_TAG } from '../../config';
+import { YEAR, lower, sentence, clamp, abs, withBrand, firstThatFits, joinList, topBrands, themes, breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
 
 export function getStaticPaths() {
   return categories.map((c: any) => ({ params: { category: c.slug } }));
@@ -35,20 +37,70 @@ const crowd = products
   .sort((a, b) => b.share_positive - a.share_positive || b.opinions - a.opinions)[0];
 if (crowd) picks.push({ label: 'Crowd favourite', p: crowd, note: `Highest approval with 100+ ${unit}` });
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
+
+// ---- SEO copy, all derived from this page's own data ------------------------------------------------------
+const x = lower(cat.name); // "robot vacuums"
+const n = products.length;
+const unitL = unit === 'comments' ? 'Reddit comments' : 'Redditors';
+const voices = products.reduce((s: number, p: any) => s + p.opinions, 0);
+const second = products[1];
+const third = products[2];
+const leaders = topBrands(products, 3);
+const praised = themes(products, 'likes', 5);
+const criticised = themes(products, 'dislikes', 5);
+const minVoices = commentLevel ? meta.rr_min : meta.min_opinions;
+const title = firstThatFits([
+  withBrand(`Best ${cat.name} Reddit ${YEAR}: Top ${n} Ranked by ${commentLevel ? 'Reddit Comments' : 'Redditors'}`, 64),
+  `Best ${cat.name} Reddit ${YEAR}: Top ${n} Ranked by ${commentLevel ? 'Reddit Comments' : 'Redditors'}`,
+  `Best ${cat.name} Reddit ${YEAR}: Top ${n} Ranked`,
+  `Best ${cat.name} Reddit ${YEAR}`,
+], 66);
+const description = clamp(
+  `Best ${x} Reddit recommends in ${YEAR}: ${n} ranked using ${fmt(voices)} ${unitL}. See what Redditors praise, what they warn about, and the original comments.`,
+);
+const related = categories
+  .filter((c: any) => c.group === cat.group && c.slug !== cat.slug)
+  .sort((a: any, b: any) => (a.source === b.source ? b.opinions - a.opinions : a.source === 'redditrecs' ? -1 : 1))
+  .slice(0, 6);
+const faq = [
+  {
+    q: `What are the best ${x} on Reddit?`,
+    a: `${top.name} is the top-ranked of ${n} ${x} in our Reddit-based ranking, with a score of ${top.score}/100 and ${top.share_positive}% positive opinions from ${fmt(top.opinions)} ${unitL}. ${second.name} and ${third.name} follow.`,
+  },
+  {
+    q: `Which ${x} do Redditors talk about most?`,
+    a: `${mostDiscussed.name} has the most discussion in our data, with ${fmt(mostDiscussed.opinions)} ${unitL}.` + (crowd ? ` Among well-discussed picks, Redditors favour ${crowd.name}, with ${crowd.share_positive}% positive opinions.` : ''),
+  },
+  ...(criticised.length
+    ? [{ q: `What do Redditors complain about with ${x}?`, a: `The most common complaints are ${joinList(criticised.slice(0, 3).map((c) => c.title.toLowerCase()))}. Each product page lists what Reddit praises and criticises about it.` }]
+    : []),
+  {
+    q: `How are the best ${x} on Reddit ranked?`,
+    a: commentLevel
+      ? `We count positive, neutral and negative Reddit comments about each product, then score it with the lower bound of a 95% confidence interval on its approval rate. A product liked by 90% of 20 comments ranks below one liked by 85% of 300. Only products with at least ${minVoices} comments are ranked.`
+      : `We collect public Reddit comments about each product, count each Redditor once per product, and score it with the lower bound of a 95% confidence interval on its approval rate. A product liked by 90% of 20 people ranks below one liked by 85% of 300. Only products with at least ${minVoices} Redditors are ranked.`,
+  },
+  {
+    q: `Does AskTheSubs earn money from these ${x} links?`,
+    a: AMAZON_TAG
+      ? 'Some links to Amazon are affiliate links, so we may earn a commission if you buy, at no extra cost to you. Rankings are calculated from Reddit opinions only, and commissions do not influence them.'
+      : 'Buy buttons currently link to Amazon without an affiliate tag. If that changes we will say so. Rankings come from Reddit opinions only.',
+  },
+];
+const jsonLd = [
+  breadcrumbLd([{ name: 'Home', url: abs('/') }, { name: `Best ${cat.name}`, url: abs(`/${cat.slug}/`) }]),
+  itemListLd(`Best ${cat.name} according to Reddit`, products.slice(0, 10).map((p: any) => ({ name: p.name, url: abs(`/${cat.slug}/${p.slug}/`) }))),
+  faqLd(faq),
+];
 ---
-<Base
-  title={`Best ${cat.name} ${new Date().getFullYear()} According to Reddit (${products.length} ranked)`}
-  description={`${cat.name} ranked by what Reddit users recommend and warn against, with links to the original comments.`}
->
+<Base title={title} description={description} jsonLd={jsonLd}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; {cat.name}</p>
     <header class="page-head">
       <span class="kicker">{products.length} ranked · through <span style="white-space:nowrap">{meta.comments_through}</span></span>
       <h1>Best {cat.name} <em>according to Reddit</em></h1>
       <p class="lead">
-        {commentLevel
-          ? `Every product below has at least ${meta.rr_min} Reddit comments behind it. Rankings weigh how many comments approve against how many were counted, so a few enthusiastic comments cannot carry a product to the top.`
-          : `Every product below has at least ${meta.min_opinions} Redditors behind it. Rankings weigh how many people approve against how many were counted, so a few enthusiasts cannot carry a product to the top.`}
+        {`Looking for the best ${x} on Reddit? We ranked ${n} ${x} using ${fmt(voices)} ${unitL}. `}<b>{top.name}</b>{` leads with a score of ${top.score}/100 (${top.share_positive}% positive), ahead of ${second.name} and ${third.name}. Every product below has at least ${minVoices} ${unitL} behind it, so a few enthusiasts cannot carry a product to the top.`}
       </p>
       {commentLevel && (
         <p class="basis"><b>Comment-level topic.</b> These counts come from a third-party analysis of Reddit comments. Unlike our Redditor-level
@@ -57,6 +109,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       )}
     </header>
 
+    <div class="section-head" style="margin-top:44px"><h2>Best {x} Reddit recommends: our top picks</h2></div>
     <div class="answer">
       {picks.map((k) => (
         <a href={`/${cat.slug}/${k.p.slug}/`}>
@@ -68,10 +121,11 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
     </div>
 
     <section class="plot-section">
-      <div class="section-head" style="margin-top:56px"><h2 style="font:400 clamp(30px,3.6vw,42px)/1.05 var(--serif);letter-spacing:-.02em">Popularity <em style="color:var(--orange)">vs.</em> approval</h2></div>
+      <div class="section-head" style="margin-top:56px"><h2>Best {x} on Reddit: popularity <em>vs.</em> approval</h2></div>
       <PopularityPlot products={products} category={cat.slug} unit={unit} />
     </section>
 
+    <div class="section-head" style="margin-top:64px"><h2>All {n} best {x}, ranked by Reddit</h2><span class="kicker">through {meta.comments_through}</span></div>
     <div class="controls" id="controls" hidden>
       <input id="q" type="search" placeholder={`Search ${cat.name.toLowerCase()}`} aria-label="Search products" />
       <select id="brand" aria-label="Filter by brand">
@@ -114,13 +168,48 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       ))}
     </ol>
 
+    <section class="says-block">
+      <div class="section-head"><h2>What Redditors say about {x}</h2></div>
+      <p class="says-lead">
+        {leaders.length > 0 && <>{joinList(leaders)} {leaders.length > 1 ? 'show' : 'shows'} up most often in the top ten best {x} on Reddit. </>}
+        {mostDiscussed.name} is the most discussed, with {fmt(mostDiscussed.opinions)} {unitL}, while {top.name} earns the best confidence-weighted score.
+        {praised.length > 0 && ' Here is what comes up again and again in the comments.'}
+      </p>
+      {(praised.length > 0 || criticised.length > 0) && (
+        <div class="pair">
+          <div class="good">
+            <h3>What Redditors praise in {x}</h3>
+            <ul>{praised.map((t) => <li><span>{sentence(t.title)}</span><small>{fmt(t.count)} mentions</small></li>)}</ul>
+          </div>
+          <div class="bad">
+            <h3>What Redditors complain about</h3>
+            {criticised.length > 0
+              ? <ul>{criticised.map((t) => <li><span>{sentence(t.title)}</span><small>{fmt(t.count)} mentions</small></li>)}</ul>
+              : <p class="empty">No recurring complaints.</p>}
+          </div>
+        </div>
+      )}
+    </section>
+
     {threads.length > 0 && (
       <section class="threads">
-        <div class="section-head"><h2 style="font:400 clamp(28px,3.4vw,40px)/1.05 var(--serif);letter-spacing:-.02em">Read the <em style="color:var(--orange)">threads</em></h2></div>
+        <div class="section-head"><h2>Read the <em>threads</em></h2></div>
         <p class="sources-note">A sample of the {fmt(cat.threads_total ?? threads.length)} Reddit threads behind this ranking. Form your own view from the originals.</p>
         <ul>
           {threads.map((t: any) => <li><a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a>{t.sub && <small> r/{t.sub}</small>}</li>)}
         </ul>
+      </section>
+    )}
+
+    <section class="faq">
+      <div class="section-head"><h2>Best {x} on Reddit: questions answered</h2></div>
+      {faq.map((f) => <div class="qa"><h3>{f.q}</h3><p>{f.a}</p></div>)}
+    </section>
+
+    {related.length > 0 && (
+      <section class="rel">
+        <div class="section-head"><h2>More rankings Reddit recommends</h2></div>
+        <ul>{related.map((c: any) => <li><a href={`/${c.slug}/`}>Best {c.name} on Reddit</a><small class="num">{c.products} ranked</small></li>)}</ul>
       </section>
     )}
 
