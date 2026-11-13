@@ -33,14 +33,16 @@
      "sentiment": "positive",
      "subreddit": "example",
      "date": "2026-01-01",
-     "url": "https://www.reddit.com/"
+     "url": "https://www.reddit.com/",
+     "thread": "Placeholder thread title 1"
     },
     {
      "text": "Another placeholder quote with a negative tone for layout testing.",
      "sentiment": "negative",
      "subreddit": "example",
      "date": "2026-01-02",
-     "url": "https://www.reddit.com/"
+     "url": "https://www.reddit.com/",
+     "thread": "Placeholder thread title 1"
     }
    ]
   },
@@ -75,14 +77,16 @@
      "sentiment": "positive",
      "subreddit": "example",
      "date": "2026-01-01",
-     "url": "https://www.reddit.com/"
+     "url": "https://www.reddit.com/",
+     "thread": "Placeholder thread title 1"
     },
     {
      "text": "Another placeholder quote with a negative tone for layout testing.",
      "sentiment": "negative",
      "subreddit": "example",
      "date": "2026-01-02",
-     "url": "https://www.reddit.com/"
+     "url": "https://www.reddit.com/",
+     "thread": "Placeholder thread title 1"
     }
    ]
   },
@@ -117,16 +121,59 @@
      "sentiment": "positive",
      "subreddit": "example",
      "date": "2026-01-01",
-     "url": "https://www.reddit.com/"
+     "url": "https://www.reddit.com/",
+     "thread": "Placeholder thread title 1"
     },
     {
      "text": "Another placeholder quote with a negative tone for layout testing.",
      "sentiment": "negative",
      "subreddit": "example",
      "date": "2026-01-02",
-     "url": "https://www.reddit.com/"
+     "url": "https://www.reddit.com/",
+     "thread": "Placeholder thread title 1"
     }
    ]
   }
- ]
+ ],
+ "discussions": {
+  "total": 14,
+  "top": [
+   {
+    "title": "Placeholder thread title 1",
+    "subreddit": "example",
+    "url": "https://www.reddit.com/",
+    "redditors": 30
+   },
+   {
+    "title": "Placeholder thread title 2",
+    "subreddit": "example",
+    "url": "https://www.reddit.com/",
+    "redditors": 26
+   },
+   {
+    "title": "Placeholder thread title 3",
+    "subreddit": "example",
+    "url": "https://www.reddit.com/",
+    "redditors": 22
+   },
+   {
+    "title": "Placeholder thread title 4",
+    "subreddit": "example",
+    "url": "https://www.reddit.com/",
+    "redditors": 18
+   },
+   {
+    "title": "Placeholder thread title 5",
+    "subreddit": "example",
+    "url": "https://www.reddit.com/",
+    "redditors": 14
+   },
+   {
+    "title": "Placeholder thread title 6",
+    "subreddit": "example",
+    "url": "https://www.reddit.com/",
+    "redditors": 10
+   }
+  ]
+ }
 }

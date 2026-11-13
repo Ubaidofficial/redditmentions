@@ -18,7 +18,8 @@ What it does to the raw archive data:
   * ranks by the Wilson lower bound of the approval rate (positive = 1, neutral = 0.5,
     negative = 0), and drops products with fewer than --min-opinions Redditors
   * keeps a few short quotes per product (preferring ones that end cleanly) with the
-    link to the original comment, and never writes Reddit usernames
+    link to the original comment and the title of its thread, and never writes Reddit usernames
+  * lists the most-discussed Reddit threads behind each category ("discussions analyzed")
   * applies scripts/curation.json: drops products that are years old and merges product families
     you define (Miele Complete C3 variants, Garmin Instinct 3 editions...), keeping a list of the
     variants that were combined. Edit that file to change the rules.
@@ -133,19 +134,28 @@ def load_series(folder):
     return found
 
 
+def thread_url(permalink):
+    """Reddit thread link from a comment permalink (/r/sub/comments/<id>/<slug>/<comment>/), or None."""
+    m = re.search(r"(/r/[^/]+/comments/[a-z0-9]+(?:/[^/?#]*)?)", permalink or "", re.I)
+    return "https://www.reddit.com" + m.group(1).rstrip("/") + "/" if m else None
+
+
 def pick_quotes(cands, sentiment, limit):
     """Most specific, informative quotes of one sentiment; one per Redditor, no repeats."""
     chosen, seen_users, seen_text = [], set(), set()
     # Some archived quotes are cut off mid-sentence: prefer ones that end cleanly, then the most specific.
     clean = lambda t: t.rstrip().endswith((".", "!", "?", '"', "'", ")", "\u201d"))
     pool = sorted((c for c in cands if c[2] == sentiment), key=lambda c: (not clean(c[3]), -c[0], -len(c[3])))
-    for spec, user, _s, text, sub, date, url in pool:
+    for spec, user, _s, text, sub, date, url, thread in pool:
         key = text.lower()
         if user in seen_users or key in seen_text:
             continue
         seen_users.add(user)
         seen_text.add(key)
-        chosen.append({"text": text, "sentiment": sentiment, "subreddit": sub, "date": date, "url": url})
+        q = {"text": text, "sentiment": sentiment, "subreddit": sub, "date": date, "url": url}
+        if thread:
+            q["thread"] = thread[:140]
+        chosen.append(q)
         if len(chosen) == limit:
             break
     return chosen
@@ -177,7 +187,7 @@ def first_rule(rules, category, normed):
 
 def new_group(brand, name):
     return {"best": -1, "brand": brand, "name": name, "asin": None, "asin_n": -1, "img": None, "img_n": -1,
-            "is_series": True, "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": []}
+            "is_series": True, "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": [], "threads": {}}
 
 
 def merge_into(t, g):
@@ -187,6 +197,8 @@ def merge_into(t, g):
         e = t["points"].setdefault(k, [title, 0])
         e[1] += cnt
     t["quotes"].extend(g["quotes"])
+    for k, th in g["threads"].items():
+        t["threads"].setdefault(k, {**th, "users": set()})["users"] |= th["users"]
     t["subs"] |= g["subs"]
     t["members"].extend(g["members"])
     if g["asin"] and g["asin_n"] >= t["asin_n"]:
@@ -219,7 +231,7 @@ def main():
         sv = series.get((r["category_slug"], r["model_slug"]))
         key = (c["slug"], ("series|" + product_key(*sv)) if sv else product_key(r["brand_name"], r["model_name"]))
         g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "img": None, "img_n": -1, "is_series": False,
-                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": []})
+                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": [], "threads": {}})
         n = int(num(r["user_opinion_count"]) or 0)
         g["members"].append((n, tidy_name(display_name(r["brand_name"], r["model_name"]))))
         if sv:
@@ -258,12 +270,18 @@ def main():
         date = (r["comment_date"] or "")[:10]
         if date > through:
             through = date
+        title = re.sub(r"\s+", " ", r.get("thread_title") or "").strip()
+        if title and r["comment_permalink"]:
+            turl = thread_url(r["comment_permalink"])
+            th = g["threads"].setdefault(turl or (title.lower(), r["subreddit"]),
+                                         {"title": title, "subreddit": r["subreddit"], "url": turl, "users": set()})
+            th["users"].add(user)
         if r["quotes"] and r["comment_permalink"]:
             spec = num(r["specificity"]) or 0.0
             for q in r["quotes"].split(" || "):
                 q = q.strip()
                 if 50 <= len(q) <= 240:
-                    g["quotes"].append((spec, user, s, q, r["subreddit"], date, r["comment_permalink"]))
+                    g["quotes"].append((spec, user, s, q, r["subreddit"], date, r["comment_permalink"], title))
     print(f"{rows:,} opinion rows used; newest comment {through}", flush=True)
 
     # ---- like / dislike summaries -------------------------------------------
@@ -332,7 +350,7 @@ def main():
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
-                "asin": g["asin"], "image": g["img"], "_subs": g["subs"],
+                "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_threads": g["threads"],
                 "likes": [{"title": t, "count": k} for t, k in likes],
                 "dislikes": [{"title": t, "count": k} for t, k in dislikes],
                 "quotes": pick_quotes(g["quotes"], "positive", 3) + pick_quotes(g["quotes"], "negative", 2),
@@ -340,9 +358,12 @@ def main():
         ranked.sort(key=lambda p: (-p["_s"], -p["opinions"]))
         ranked = ranked[: a.top]
         used = set()
+        pooled = {}
         for i, p in enumerate(ranked, 1):
             p.pop("_s")
             all_subs |= p.pop("_subs")
+            for k, th in p.pop("_threads").items():
+                pooled.setdefault(k, {**th, "users": set()})["users"] |= th["users"]
             slug, base, k = slugify(p["name"]), slugify(p["name"]), 2
             while slug in used:
                 slug, k = f"{base}-{k}", k + 1
@@ -361,7 +382,12 @@ def main():
             for v in maybe[:12]:
                 print("     - " + " | ".join(x[:40] for x in v))
         with open(os.path.join(a.out, c["slug"] + ".json"), "w", encoding="utf-8") as f:
-            json.dump({"slug": c["slug"], "name": c["name"], "products": ranked}, f, ensure_ascii=False, separators=(",", ":"))
+            top_threads = sorted(pooled.values(), key=lambda t: (-len(t["users"]), t["title"]))[:10]
+            discussions = {"total": len(pooled),
+                           "top": [{"title": t["title"][:160], "subreddit": t["subreddit"], "url": t["url"],
+                                    "redditors": len(t["users"])} for t in top_threads]}
+            json.dump({"slug": c["slug"], "name": c["name"], "discussions": discussions, "products": ranked},
+                      f, ensure_ascii=False, separators=(",", ":"))
         meta_cats.append({"slug": c["slug"], "name": c["name"], "products": len(ranked),
                           "opinions": sum(p["opinions"] for p in ranked),
                           "top_pick": ranked[0]["name"] if ranked else None})

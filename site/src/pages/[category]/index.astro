@@ -71,6 +71,8 @@ const jsonld = {
   '@type': 'FAQPage',
   mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
 };
+const disc = cat.discussions && cat.discussions.top?.length ? cat.discussions : null;
+const topQuote = (p: any) => p.quotes?.find((q: any) => q.sentiment === 'positive') ?? p.quotes?.[0] ?? null;
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
 ---
 <Base
@@ -99,6 +101,37 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
         </a>
       ))}
     </div>
+
+    {disc && (
+      <section class="discussions" aria-labelledby="disc-h">
+        <div class="disc-head">
+          <h2 id="disc-h" class="kicker">Discussions analyzed</h2>
+          <span class="kicker num">{fmt(disc.total)} threads</span>
+        </div>
+        <ul>
+          {disc.top.slice(0, 3).map((t: any) => (
+            <li>
+              {t.url ? <a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a> : <span>{t.title}</span>}
+              <small class="num">r/{t.subreddit} · {t.redditors} Redditors{t.url ? ' ↗' : ''}</small>
+            </li>
+          ))}
+        </ul>
+        {disc.top.length > 3 && (
+          <details>
+            <summary>Show {disc.top.length - 3} more of the biggest threads</summary>
+            <ul>
+              {disc.top.slice(3).map((t: any) => (
+                <li>
+                  {t.url ? <a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a> : <span>{t.title}</span>}
+                  <small class="num">r/{t.subreddit} · {t.redditors} Redditors{t.url ? ' ↗' : ''}</small>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        <p class="disc-note">The threads with the most Redditors counted across this ranking. Every product page links to the original comments.</p>
+      </section>
+    )}
 
     <section class="plot-section">
       <div class="section-head" style="margin-top:56px"><h2 style="font:400 clamp(30px,3.6vw,42px)/1.05 var(--serif);letter-spacing:-.02em">Popularity <em style="color:var(--orange)">vs.</em> approval</h2></div>
@@ -152,6 +185,13 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
                 {p.likes[0] && <span><b class="up">Praised</b> {p.likes[0].title}</span>}
                 {p.dislikes[0] && <span class="down"><b class="down">Flagged</b> {p.dislikes[0].title}</span>}
               </p>
+            )}
+            {topQuote(p) && (
+              <a class={`topq ${topQuote(p).sentiment === 'negative' ? 'neg' : 'pos'}`} href={topQuote(p).url} rel="nofollow noopener" target="_blank">
+                <span class="kicker">Top quote</span>
+                <q>{topQuote(p).text}</q>
+                <small>r/{topQuote(p).subreddit} ↗</small>
+              </a>
             )}
           </div>
           <div class="scorecol">

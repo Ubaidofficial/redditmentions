@@ -75,7 +75,7 @@ const fmt = (n: number) => n.toLocaleString('en-US');
           <blockquote class={q.sentiment === 'negative' ? 'neg' : 'pos'}>
             <div>
               <p>{q.text}</p>
-              <footer>r/{q.subreddit} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">Original comment ↗</a></footer>
+              <footer>r/{q.subreddit}{q.thread ? <> · in “{q.thread}”</> : ''} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">Original comment ↗</a></footer>
             </div>
           </blockquote>
         ))}
