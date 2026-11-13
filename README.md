@@ -146,18 +146,34 @@ Environment variables (set in `site/.env` or the build environment):
   switch to Amazon's official image links once your Associates account is approved: check the Associates
   Program Operating Agreement before showing Amazon's images on a live site.
 
-### Indexing while the site is new
+### Indexing while the site is new: a daily release plan
 
-Only a few pages are submitted to search engines at first. `site/launch-pages.json` lists them: the home page, the
-method page and 15 category pages (about 17 URLs). The sitemap (`/sitemap-index.xml`) contains only those, and every
-other page is still published but carries `noindex, follow`, so search engines can follow its links but are asked not
-to index it. A sitemap alone would not do that, because the other pages are linked from the home page and category pages.
+Only a few pages are submitted to search engines at first, then a few more each day. `site/launch-pages.json` holds the plan:
+`paths` and `categories` are live from day 0 (8 pages: home, method, 6 categories), and `queue` (about 335 topics, ordered by
+search demand) is released in order, **5-10 per day** (a different number each day, but identical on every build of the same
+date), starting the day after `schedule.startDate`. The released set is computed from the build date (UTC), so you only need to
+rebuild and deploy once a day:
 
-- To promote more pages, add topic slugs (without `best-` or `-reddit`) to `categories`, or full paths to `products`,
-  in `site/launch-pages.json`, then deploy.
-- To index everything, set `PUBLIC_INDEX_PAGES=all` in `site/.env` and deploy. The sitemap then lists every page.
-- `PUBLIC_NOINDEX=true` overrides both: nothing is indexable, links are not followed (use it for previews).
-- Submit `https://askthesubs.com/sitemap-index.xml` in Google Search Console once the site is public.
+```bash
+./scripts/publish.sh
+```
+
+- `node scripts/release-plan.mjs 14` prints today's plan and the next 14 days. `PUBLIC_RELEASE_DATE=YYYY-MM-DD` previews any date.
+- If you skip days, the next deploy releases everything due by then (catch-up). To avoid a big batch, deploy daily.
+- The sitemap (`/sitemap-index.xml`), the `index`/`noindex` robots tags, the Markdown files and `llms.txt` all use the same released
+  set, so they cannot disagree. Pages not yet released are published but `noindex, follow`, because a sitemap alone would not stop
+  search engines indexing pages they find through links.
+- Reorder `queue` or add/remove topics freely (slugs without `best-` / `-reddit`). `heldOut` lists finance, insurance, software-service,
+  health-device and safety topics that are not queued; add them by hand if you want them.
+- `PUBLIC_INDEX_PAGES=all` in `site/.env` indexes everything at once; `PUBLIC_NOINDEX=true` overrides all of it (previews).
+
+### Markdown versions and llms.txt
+
+Every released page has a Markdown copy at its address plus `.md` (for example `/best-robot-vacuums-reddit.md`), built from the same
+data and wording as the HTML page. `/llms.txt` follows the llmstxt.org convention (title, summary, links), and `/llms-full.txt` holds
+all released pages in one file. The `.md` files and `llms-full.txt` are sent with `X-Robots-Tag: noindex` (`site/public/_headers`) so
+they do not compete with the HTML pages. llms.txt is a proposed convention, not a standard, and there is no evidence that search
+engines use it for ranking.
 
 ## Publishing
 

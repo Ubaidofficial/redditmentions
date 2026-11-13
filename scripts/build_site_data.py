@@ -109,6 +109,7 @@ def page_slug(base):
 
 
 def slugify(s):
+    s = re.sub("[\u2019'`]", "", s or "")  # "Men's" -> "Mens", not "men-s"
     return norm(s).replace(" ", "-")[:80].strip("-") or "product"
 
 
@@ -432,8 +433,9 @@ def main():
 
 
     # ---- redrecs-only topics: comment-level rankings, ranked by OUR confidence score ----------
-    used_slugs = {m["slug"] for m in meta_cats} | {page_slug(c["slug"]) for c in cats}
-    n_rr_cats = n_rr_dropped = 0
+    # only slugs of categories that are really published: a dropped (too thin) category must not force a "-2" suffix
+    used_slugs = {m["slug"] for m in meta_cats if m["products"] >= max(1, a.min_products)}
+    n_rr_cats = n_rr_dropped = n_dup_topics = 0
     skip = {g.strip() for g in a.skip_groups.split(",") if g.strip()}
     n_skipped = 0
     for L in rr_lists:
@@ -463,10 +465,10 @@ def main():
         ranked.sort(key=lambda p: (-p["_s"], -p["opinions"]))
         ranked = ranked[: a.top]
         name = list_topic_name(L["title"])
-        slug = base = page_slug(slugify(name))
-        k = 2
-        while slug in used_slugs:
-            slug, k = f"{base}-{k}", k + 1
+        slug = page_slug(slugify(name))
+        if slug in used_slugs:  # same topic as a page we already have: two pages would compete in search, so skip it
+            n_dup_topics += 1
+            continue
         used_slugs.add(slug)
         used = set()
         for i, p in enumerate(ranked, 1):
@@ -489,7 +491,7 @@ def main():
     if rr_lists:
         print(f"  redrecs: {n_rr_cats} comment-level topics added; {len(list_cat)} lists matched a redditrecs category "
               f"(used as second opinions; {n_rr_dropped} further products there were not shown); "
-              f"{n_skipped} non-shopping lists skipped ({a.skip_groups})")
+              f"{n_skipped} non-shopping lists skipped ({a.skip_groups}); {n_dup_topics} lists skipped as duplicates of an existing topic")
 
     meta_cats = [m for m in meta_cats if m["products"] >= max(1, a.min_products)]
     with open(os.path.join(a.out, "categories.json"), "w", encoding="utf-8") as f:

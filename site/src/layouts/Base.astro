@@ -6,7 +6,7 @@ import { SITE, NOINDEX, INDEX_ALL, AMAZON_TAG } from '../config';
 import { isLaunchPath } from '../lib/launch';
 import { usingFixture, meta } from '../lib/data';
 
-const { title, description = SITE.description, cta = false, jsonLd = [], ogType = 'website' } = Astro.props;
+const { title, description = SITE.description, cta = false, jsonLd = [], ogType = 'website', mdPath = '' } = Astro.props;
 const orgLd = { '@context': 'https://schema.org', '@type': 'Organization', name: SITE.name, url: SITE.url, description: SITE.description };
 const ldBlocks = [orgLd, ...jsonLd];
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
@@ -32,6 +32,7 @@ const total = meta.categories.length;
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
+    {mdPath && !heldBack && !hardNoindex && <link rel="alternate" type="text/markdown" href={mdPath} title="Markdown version" />}
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta name="theme-color" content="#ff4500" />
     <meta name="robots" content={hardNoindex ? 'noindex,nofollow' : heldBack ? 'noindex,follow' : 'index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1'} />

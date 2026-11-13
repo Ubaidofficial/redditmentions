@@ -6,8 +6,8 @@ import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
 import { evidence } from '../../lib/format';
 import { categories, getCategory, meta } from '../../lib/data';
-import { AMAZON_TAG } from '../../config';
-import { YEAR, lower, sentence, clamp, abs, withBrand, firstThatFits, joinList, topBrands, themes, breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
+import { categoryCopy } from '../../lib/copy';
+import { sentence, abs, joinList, breadcrumbLd, faqLd, itemListLd } from '../../lib/seo';
 
 export function getStaticPaths() {
   return categories.map((c: any) => ({ params: { category: c.slug } }));
@@ -38,62 +38,19 @@ const crowd = products
 if (crowd) picks.push({ label: 'Crowd favourite', p: crowd, note: `Highest approval with 100+ ${unit}` });
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
 
-// ---- SEO copy, all derived from this page's own data ------------------------------------------------------
-const x = lower(cat.name); // "robot vacuums"
-const n = products.length;
-const unitL = unit === 'comments' ? 'Reddit comments' : 'Redditors';
-const voices = products.reduce((s: number, p: any) => s + p.opinions, 0);
-const second = products[1];
-const third = products[2];
-const leaders = topBrands(products, 3);
-const praised = themes(products, 'likes', 5);
-const criticised = themes(products, 'dislikes', 5);
-const minVoices = commentLevel ? meta.rr_min : meta.min_opinions;
-const title = firstThatFits([
-  withBrand(`Best ${cat.name} Reddit ${YEAR}: Top ${n} Ranked by ${commentLevel ? 'Reddit Comments' : 'Redditors'}`, 64),
-  `Best ${cat.name} Reddit ${YEAR}: Top ${n} Ranked by ${commentLevel ? 'Reddit Comments' : 'Redditors'}`,
-  `Best ${cat.name} Reddit ${YEAR}: Top ${n} Ranked`,
-  `Best ${cat.name} Reddit ${YEAR}`,
-], 66);
-const description = clamp(
-  `Best ${x} Reddit recommends in ${YEAR}: ${n} ranked using ${fmt(voices)} ${unitL}. See what Redditors praise, what they warn about, and the original comments.`,
-);
+// ---- SEO copy, shared with the Markdown files and llms.txt (lib/copy.ts) ------------------------------------
+const { x, n, unitL, voices, second, third, leaders, praised, criticised, minVoices, title, description, faq } = categoryCopy(cat);
 const related = categories
   .filter((c: any) => c.group === cat.group && c.slug !== cat.slug)
   .sort((a: any, b: any) => (a.source === b.source ? b.opinions - a.opinions : a.source === 'redditrecs' ? -1 : 1))
   .slice(0, 6);
-const faq = [
-  {
-    q: `What are the best ${x} on Reddit?`,
-    a: `${top.name} is the top-ranked of ${n} ${x} in our Reddit-based ranking, with a score of ${top.score}/100 and ${top.share_positive}% positive opinions from ${fmt(top.opinions)} ${unitL}. ${second.name} and ${third.name} follow.`,
-  },
-  {
-    q: `Which ${x} do Redditors talk about most?`,
-    a: `${mostDiscussed.name} has the most discussion in our data, with ${fmt(mostDiscussed.opinions)} ${unitL}.` + (crowd ? ` Among well-discussed picks, Redditors favour ${crowd.name}, with ${crowd.share_positive}% positive opinions.` : ''),
-  },
-  ...(criticised.length
-    ? [{ q: `What do Redditors complain about with ${x}?`, a: `The most common complaints are ${joinList(criticised.slice(0, 3).map((c) => c.title.toLowerCase()))}. Each product page lists what Reddit praises and criticises about it.` }]
-    : []),
-  {
-    q: `How are the best ${x} on Reddit ranked?`,
-    a: commentLevel
-      ? `We count positive, neutral and negative Reddit comments about each product, then score it with the lower bound of a 95% confidence interval on its approval rate. A product liked by 90% of 20 comments ranks below one liked by 85% of 300. Only products with at least ${minVoices} comments are ranked.`
-      : `We collect public Reddit comments about each product, count each Redditor once per product, and score it with the lower bound of a 95% confidence interval on its approval rate. A product liked by 90% of 20 people ranks below one liked by 85% of 300. Only products with at least ${minVoices} Redditors are ranked.`,
-  },
-  {
-    q: `Does AskTheSubs earn money from these ${x} links?`,
-    a: AMAZON_TAG
-      ? 'Some links to Amazon are affiliate links, so we may earn a commission if you buy, at no extra cost to you. Rankings are calculated from Reddit opinions only, and commissions do not influence them.'
-      : 'Buy buttons currently link to Amazon without an affiliate tag. If that changes we will say so. Rankings come from Reddit opinions only.',
-  },
-];
 const jsonLd = [
   breadcrumbLd([{ name: 'Home', url: abs('/') }, { name: `Best ${cat.name}`, url: abs(`/${cat.slug}/`) }]),
   itemListLd(`Best ${cat.name} according to Reddit`, products.slice(0, 10).map((p: any) => ({ name: p.name, url: abs(`/${cat.slug}/${p.slug}/`) }))),
   faqLd(faq),
 ];
 ---
-<Base title={title} description={description} jsonLd={jsonLd}>
+<Base title={title} description={description} jsonLd={jsonLd} mdPath={`/${cat.slug}.md`}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; {cat.name}</p>
     <header class="page-head">
