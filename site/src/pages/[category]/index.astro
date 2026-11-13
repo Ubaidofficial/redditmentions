@@ -4,7 +4,9 @@ import Sentiment from '../../components/Sentiment.astro';
 import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
+import CategoryCard from '../../components/CategoryCard.astro';
 import { evidence } from '../../lib/format';
+import { SITE } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -27,16 +29,83 @@ const crowd = products
   .filter((p) => p.opinions >= 100 && !shown.has(p.slug))
   .sort((a, b) => b.share_positive - a.share_positive || b.opinions - a.opinions)[0];
 if (crowd) picks.push({ label: 'Crowd favourite', p: crowd, note: 'Highest approval with 100+ Redditors' });
+const totalOpinions = products.reduce((n: number, p: any) => n + p.opinions, 0);
+
+// Brand leaderboard: every product's opinions pooled by brand.
+const brandMap = new Map<string, any>();
+for (const p of products) {
+  if (!p.brand) continue;
+  const b = brandMap.get(p.brand) ?? { name: p.brand, products: 0, opinions: 0, positive: 0, neutral: 0, negative: 0 };
+  b.products++; b.opinions += p.opinions; b.positive += p.positive; b.neutral += p.neutral; b.negative += p.negative;
+  brandMap.set(p.brand, b);
+}
+const brandBoard = [...brandMap.values()]
+  .map((b) => ({ ...b, share: Math.round((100 * b.positive) / (b.opinions || 1)) }))
+  .sort((a, b) => b.opinions - a.opinions)
+  .slice(0, 8);
+
+// Other categories, starting after this one so every page links somewhere different.
+const idx = categories.findIndex((c: any) => c.slug === cat.slug);
+const others = [...categories.slice(idx + 1), ...categories.slice(0, idx)].slice(0, 6);
+
+const lower = cat.name.toLowerCase();
+const faqs = [
+  {
+    q: `What are the best ${lower} according to Reddit?`,
+    a: `Right now the top-ranked is ${top.name}, with a score of ${top.score} out of 100 and ${top.share_positive}% positive opinions from ${fmt(top.opinions)} Redditors. The full ranking of ${products.length} ${lower} is above.`,
+  },
+  {
+    q: `How are ${lower} ranked?`,
+    a: `Each Redditor counts once per product. Positive opinions count 1, neutral one half and negative 0, and the score is the lower bound of a 95% confidence interval (Wilson score) for that approval rate. A product liked by 90% of 20 people can rank below one liked by 85% of 300.`,
+  },
+  {
+    q: 'How recent is the data?',
+    a: `Rankings use public Reddit comments collected through ${meta.comments_through}. Products released after that may be missing.`,
+  },
+  {
+    q: `Are the top-ranked ${lower} really the best?`,
+    a: 'Not necessarily. Reddit users are not a representative sample, brand communities skew toward their brand, and opinions were labelled by an automated process we have not checked by hand. Use the ranking as a shortlist and read the quotes.',
+  },
+];
+const abs = (path: string) => new URL(path, SITE.url).toString();
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
+      { '@type': 'ListItem', position: 2, name: cat.name, item: abs(`/${cat.slug}/`) },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: `Best ${cat.name} according to Reddit`,
+    numberOfItems: products.length,
+    itemListElement: products.slice(0, 20).map((p: any) => ({
+      '@type': 'ListItem', position: p.rank, name: p.name, url: abs(`/${cat.slug}/${p.slug}/`),
+    })),
+  },
+];
+const disc = cat.discussions && cat.discussions.top?.length ? cat.discussions : null;
+const topQuote = (p: any) => p.quotes?.find((q: any) => q.sentiment === 'positive') ?? p.quotes?.[0] ?? null;
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
 ---
 <Base
   title={`Best ${cat.name} According to Reddit (${products.length} ranked)`}
   description={`${cat.name} ranked by what Reddit users recommend and warn against, with links to the original comments.`}
+  jsonld={jsonld}
 >
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; {cat.name}</p>
     <header class="page-head">
       <span class="kicker">{products.length} ranked · through <span style="white-space:nowrap">{meta.comments_through}</span></span>
+      <p class="basis num">Based on <b>{fmt(totalOpinions)}</b> Redditors’ opinions<span class="sep"> · </span><a href="#how">How it works</a></p>
       <h1>Best {cat.name} <em>according to Reddit</em></h1>
       <p class="lead">
         Every product below has at least {meta.min_opinions} Redditors behind it. Rankings weigh how many people
@@ -54,11 +123,61 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       ))}
     </div>
 
+    {disc && (
+      <section class="discussions" aria-labelledby="disc-h">
+        <div class="disc-head">
+          <h2 id="disc-h" class="kicker">Discussions analyzed</h2>
+          <span class="kicker num">{fmt(disc.total)} threads</span>
+        </div>
+        <ul>
+          {disc.top.slice(0, 3).map((t: any) => (
+            <li>
+              {t.url ? <a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a> : <span>{t.title}</span>}
+              <small class="num">r/{t.subreddit} · {t.redditors} Redditors{t.url ? ' ↗' : ''}</small>
+            </li>
+          ))}
+        </ul>
+        {disc.top.length > 3 && (
+          <details>
+            <summary>Show {disc.top.length - 3} more of the biggest threads</summary>
+            <ul>
+              {disc.top.slice(3).map((t: any) => (
+                <li>
+                  {t.url ? <a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a> : <span>{t.title}</span>}
+                  <small class="num">r/{t.subreddit} · {t.redditors} Redditors{t.url ? ' ↗' : ''}</small>
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
+        <p class="disc-note">The threads with the most Redditors counted across this ranking. Every product page links to the original comments.</p>
+      </section>
+    )}
+
     <section class="plot-section">
       <div class="section-head" style="margin-top:56px"><h2 style="font:400 clamp(30px,3.6vw,42px)/1.05 var(--serif);letter-spacing:-.02em">Popularity <em style="color:var(--orange)">vs.</em> approval</h2></div>
       <PopularityPlot products={products} category={cat.slug} />
     </section>
 
+    {brandBoard.length > 1 && (
+      <section class="brands" aria-labelledby="brands-h">
+        <div class="section-head"><h2 id="brands-h">Brands, <em>ranked by sentiment</em></h2><span class="kicker">All products pooled</span></div>
+        <ol class="brand-row">
+          {brandBoard.map((b, i) => (
+            <li>
+              <button type="button" class="brand-card" data-brand={b.name.toLowerCase()}>
+                <span class="bn num">{i + 1}</span>
+                <span class="bname">{b.name}</span>
+                <Sentiment positive={b.positive} neutral={b.neutral} negative={b.negative} />
+                <span class="bmeta num"><b>{b.share}%</b> positive · {fmt(b.opinions)} Redditors · {b.products} {b.products === 1 ? 'product' : 'products'}</span>
+              </button>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    <div class="section-head products-head" id="products"><h2>Every product, <em>ranked</em></h2><span class="legend" aria-label="Bar colours"><i class="p"></i>Positive <i class="n"></i>Neutral <i class="x"></i>Negative</span></div>
     <div class="controls" id="controls" hidden>
       <input id="q" type="search" placeholder={`Search ${cat.name.toLowerCase()}`} aria-label="Search products" />
       <select id="brand" aria-label="Filter by brand">
@@ -88,6 +207,13 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
                 {p.dislikes[0] && <span class="down"><b class="down">Flagged</b> {p.dislikes[0].title}</span>}
               </p>
             )}
+            {topQuote(p) && (
+              <a class={`topq ${topQuote(p).sentiment === 'negative' ? 'neg' : 'pos'}`} href={topQuote(p).url} rel="nofollow noopener" target="_blank">
+                <span class="kicker">Top quote</span>
+                <q>{topQuote(p).text}</q>
+                <small>r/{topQuote(p).subreddit} ↗</small>
+              </a>
+            )}
           </div>
           <div class="scorecol">
             <div class="n"><b class="num">{p.score}</b><small class="num">{p.share_positive}% positive</small></div>
@@ -106,6 +232,25 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       Score runs from 0 to 100: positive opinions count 1, neutral ½, negative 0, adjusted for how many people were
       counted. <a href="/methodology/">How it works</a>.
     </p>
+
+    <section class="section" id="how">
+      <div class="section-head"><h2>Questions about {lower}</h2><span class="kicker">FAQ</span></div>
+      <div class="faq">
+        {faqs.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>More from <em style="color:var(--orange)">Reddit</em></h2><a class="textlink" href="/#categories">All {categories.length} rankings</a></div>
+      <div class="cgrid compact">
+        {others.map((c: any) => <CategoryCard c={c} compact />)}
+      </div>
+    </section>
   </div>
 
   <script is:inline>
@@ -130,6 +275,15 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
         count.textContent = shown + ' of ' + items.length + ' shown';
       }
       [q, brand, sort].forEach(function (el) { el.addEventListener('input', apply); });
+      Array.prototype.forEach.call(document.querySelectorAll('.brand-card'), function (btn) {
+        btn.addEventListener('click', function () {
+          var on = brand.value === btn.dataset.brand;
+          brand.value = on ? '' : btn.dataset.brand;
+          Array.prototype.forEach.call(document.querySelectorAll('.brand-card'), function (b) { b.setAttribute('aria-pressed', String(!on && b === btn)); });
+          apply();
+          document.getElementById('products').scrollIntoView({ behavior: 'smooth' });
+        });
+      });
       apply();
     })();
   </script>

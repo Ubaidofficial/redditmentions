@@ -1,0 +1,9 @@
+---
+// "Ask" mark: a speech bubble holding a question mark. Drawn with strokes so it stays crisp at any size.
+const { size = 30 } = Astro.props;
+---
+<svg class="logo-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true" focusable="false">
+  <path class="lm-bubble" d="M8 1h16a7 7 0 0 1 7 7v10.5a7 7 0 0 1-7 7H15.5L8 31v-5.5h0A7 7 0 0 1 1 18.5V8a7 7 0 0 1 7-7z"/>
+  <path class="lm-q" d="M11.7 8.9a4.4 4.4 0 0 1 8.6 1.3c0 3-4.3 3.3-4.3 6.1" fill="none"/>
+  <circle class="lm-dot" cx="16" cy="20.6" r="1.75"/>
+</svg>

@@ -1,6 +1,6 @@
 ---
 import Base from '../layouts/Base.astro';
-import CategoryIcon from '../components/CategoryIcon.astro';
+import CategoryCard from '../components/CategoryCard.astro';
 import { SITE } from '../config';
 import { categories, getCategory, meta } from '../lib/data';
 
@@ -11,20 +11,56 @@ const stats = meta.stats ?? {
   subreddits: null,
 };
 const fmt = (n: number) => n.toLocaleString('en-US');
+
+const faqs = [
+  {
+    q: 'How are products ranked?',
+    a: `Each Redditor counts once per product. A positive opinion counts as 1, a neutral one as one half and a negative one as 0. The ranking score is the lower bound of a 95% confidence interval (Wilson score) for that approval rate, so a product needs both approval and enough people behind it. Only products with at least ${meta.min_opinions} Redditors are ranked.`,
+  },
+  {
+    q: 'How recent is the data?',
+    a: `Rankings use public Reddit comments collected through ${meta.comments_through}. Products released after that date may be missing, and opinions about older products may be out of date.`,
+  },
+  {
+    q: 'Are the top-ranked products really the best?',
+    a: 'Not necessarily. Reddit users are not a representative sample, communities for one brand skew toward that brand, and opinions were labelled by an automated process that we have not checked by hand. Treat a ranking as a strong hint about what enthusiasts recommend, not a verdict.',
+  },
+  {
+    q: 'Can I check the sources?',
+    a: 'Yes. Every quote links to the original Reddit comment, and usernames are not shown.',
+  },
+  {
+    q: 'Do you get paid for rankings?',
+    a: 'Rankings are calculated from Reddit opinions only. Buy buttons link to Amazon; if affiliate tags are in use, the links are marked and explained on the method page, and they never influence the ranking.',
+  },
+];
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'FAQPage',
+  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+};
 ---
-<Base title={`${SITE.name}: ${SITE.tagline}`}>
+<Base title={`${SITE.name}: ${SITE.tagline}`} jsonld={jsonld}>
   <section class="field">
     <div class="wrap">
       <div>
+        <p class="eyebrow"><span class="live" aria-hidden="true"></span> Read from real Reddit threads · through {meta.comments_through}</p>
         <h1>What Reddit <em>actually</em> recommends.</h1>
         <p class="lead">
           We read the threads, count every voice once, and link every quote back to the source. Rankings come from
           Reddit opinions only.
         </p>
-        <div class="actions">
-          <a class="btn btn-ink" href="#categories">Browse the rankings</a>
-          <a class="textlink" href="/methodology/">How it works</a>
-        </div>
+        <form class="ask" id="search" role="search" action="#categories" hidden>
+          <label class="sr" for="cat-q">Search product categories</label>
+          <span class="q" aria-hidden="true">?</span>
+          <input id="cat-q" type="search" autocomplete="off" placeholder="What are you shopping for? e.g. robot vacuums" />
+          <button class="btn btn-ink" type="submit">Find</button>
+        </form>
+        <ul class="proof" aria-label="Why trust the rankings">
+          <li>One vote per Redditor</li>
+          <li>Every quote links to its source</li>
+          <li>Rankings use Reddit opinions only</li>
+        </ul>
       </div>
       <aside class="excerpt" aria-label="Example ranking">
         <span class="kicker">{sample.name} · top three</span>
@@ -44,6 +80,27 @@ const fmt = (n: number) => n.toLocaleString('en-US');
   </section>
 
   <div class="wrap">
+    <section class="section" id="categories">
+      <div class="section-head"><h2>Browse by category</h2><span class="kicker" id="cat-count">{categories.length} rankings</span></div>
+      <div class="cgrid" id="cgrid">
+        {categories.map((c: any) => <CategoryCard c={c} />)}
+      </div>
+      <p class="no-match" id="no-match" hidden>No ranking for that yet. Try a broader word, like “vacuum” or “headphones”.</p>
+      <p class="fineprint">
+        Based on comments collected through {meta.comments_through}, so very new products may be missing.
+        <a href="/methodology/">Read the full method and its limits</a>.
+      </p>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>The evidence</h2><span class="kicker">So far</span></div>
+      <div class="figures">
+        <div class="figure"><b class="num">{fmt(stats.opinions)}</b><span>Redditors’ opinions counted</span></div>
+        <div class="figure"><b class="num">{fmt(stats.products)}</b><span>products ranked</span></div>
+        <div class="figure"><b class="num">{stats.subreddits ? fmt(stats.subreddits) : categories.length}</b><span>{stats.subreddits ? 'Reddit communities read' : 'categories'}</span></div>
+      </div>
+    </section>
+
     <section class="section">
       <div class="section-head"><h2>The method</h2><span class="kicker">Three rules</span></div>
       <ol class="method">
@@ -66,32 +123,41 @@ const fmt = (n: number) => n.toLocaleString('en-US');
     </section>
 
     <section class="section">
-      <div class="section-head"><h2>The evidence</h2><span class="kicker">So far</span></div>
-      <div class="figures">
-        <div class="figure"><b class="num">{fmt(stats.opinions)}</b><span>Redditors’ opinions counted</span></div>
-        <div class="figure"><b class="num">{fmt(stats.products)}</b><span>products ranked</span></div>
-        <div class="figure"><b class="num">{stats.subreddits ? fmt(stats.subreddits) : categories.length}</b><span>{stats.subreddits ? 'Reddit communities read' : 'categories'}</span></div>
+      <div class="section-head"><h2>Questions</h2><a class="textlink" href="/methodology/">Full method</a></div>
+      <div class="faq">
+        {faqs.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
       </div>
     </section>
-
-    <section class="section" id="categories">
-      <div class="section-head"><h2>Browse by category</h2><span class="kicker">{categories.length} rankings</span></div>
-      <ul class="index">
-        {categories.map((c: any) => (
-          <li>
-            <a href={`/${c.slug}/`}>
-              <span class="ico"><CategoryIcon slug={c.slug} /></span>
-              <span class="name">{c.name}</span>
-              <span class="meta num">{c.products} products · {fmt(c.opinions)} opinions</span>
-              <span class="go" aria-hidden="true">→</span>
-            </a>
-          </li>
-        ))}
-      </ul>
-      <p class="fineprint">
-        Based on comments collected through {meta.comments_through}, so very new products may be missing.
-        <a href="/methodology/">Read the full method and its limits</a>.
-      </p>
-    </section>
   </div>
+
+  <script is:inline>
+    (function () {
+      var form = document.getElementById('search'), q = document.getElementById('cat-q');
+      var grid = document.getElementById('cgrid'), none = document.getElementById('no-match'), count = document.getElementById('cat-count');
+      if (!form || !q || !grid) return;
+      form.hidden = false;
+      var cards = Array.prototype.slice.call(grid.children), total = cards.length;
+      function run() {
+        var term = q.value.trim().toLowerCase().replace(/s$/, ''), n = 0;
+        cards.forEach(function (c) {
+          var ok = !term || c.dataset.name.indexOf(term) > -1;
+          c.hidden = !ok; if (ok) n++;
+        });
+        none.hidden = n > 0;
+        count.textContent = term ? n + ' of ' + total + ' rankings' : total + ' rankings';
+      }
+      q.addEventListener('input', run);
+      form.addEventListener('submit', function (e) {
+        e.preventDefault(); run();
+        var first = cards.filter(function (c) { return !c.hidden; });
+        if (first.length === 1) { window.location.href = first[0].getAttribute('href'); return; }
+        document.getElementById('categories').scrollIntoView({ behavior: 'smooth' });
+      });
+    })();
+  </script>
 </Base>
