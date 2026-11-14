@@ -405,7 +405,9 @@ def main():
                       f, ensure_ascii=False, separators=(",", ":"))
         meta_cats.append({"slug": c["slug"], "name": c["name"], "products": len(ranked),
                           "opinions": sum(p["opinions"] for p in ranked),
-                          "top_pick": ranked[0]["name"] if ranked else None})
+                          "top_pick": ranked[0]["name"] if ranked else None,
+                          # photo for the category card: the best-ranked product (of the top 5) that has one
+                          "top_image": next((p["image"] for p in ranked[:5] if p.get("image")), None)})
         print(f"  {c['name']:<22} {len(ranked):>3} ranked products, top: {ranked[0]['name'] if ranked else '-'}")
 
     meta_cats = [m for m in meta_cats if m["products"] > 0]

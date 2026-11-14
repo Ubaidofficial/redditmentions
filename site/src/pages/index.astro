@@ -53,7 +53,7 @@ const jsonld = {
         <form class="ask" id="search" role="search" action="#categories" hidden>
           <label class="sr" for="cat-q">Search product categories</label>
           <span class="q" aria-hidden="true">?</span>
-          <input id="cat-q" type="search" autocomplete="off" placeholder="What are you shopping for? e.g. robot vacuums" />
+          <input id="cat-q" type="search" autocomplete="off" placeholder="Search, e.g. robot vacuums" />
           <button class="btn btn-ink" type="submit">Find</button>
         </form>
         <ul class="proof" aria-label="Why trust the rankings">
@@ -82,7 +82,7 @@ const jsonld = {
   <div class="wrap">
     <section class="section" id="categories">
       <div class="section-head"><h2>Browse by category</h2><span class="kicker" id="cat-count">{categories.length} rankings</span></div>
-      <div class="cgrid" id="cgrid">
+      <div class={`cgrid${categories.length <= 9 ? ' roomy' : ''}`} id="cgrid">
         {categories.map((c: any) => <CategoryCard c={c} />)}
       </div>
       <p class="no-match" id="no-match" hidden>No ranking for that yet. Try a broader word, like “vacuum” or “headphones”.</p>
