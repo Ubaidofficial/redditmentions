@@ -441,9 +441,9 @@ body { counter-reset: sec; }
 .ccard:hover { transform: translateY(-5px); box-shadow: 0 26px 44px -22px rgba(17,17,16,.5), 0 0 0 2px var(--orange); }
 .ccard .art { flex: 1; min-height: 0; aspect-ratio: auto; }
 .ccard .art .cat-icon { width: 34%; }
-.ccard:has(.art.has-photo) .art { position: absolute; inset: 0; border: 0; }
-.ccard:has(.art.has-photo) .art img { padding: 14% 14% 28%; }
-.ccard:has(.art.has-photo) .body { position: absolute; left: 0; right: 0; bottom: 0; padding: 72px 22px 20px; background: linear-gradient(transparent, rgba(17,17,16,.86) 55%); color: #fff; }
+.ccard:has(.art.has-photo) .art { border: 0; }
+.ccard:has(.art.has-photo) .art img { padding: 8% 10% 16%; }
+.ccard:has(.art.has-photo) .body { position: relative; margin-top: -48px; padding: 64px 22px 20px; background: linear-gradient(transparent, rgba(17,17,16,.86) 50%); color: #fff; }
 .ccard:has(.art.has-photo) .name { color: #fff; }
 .ccard:has(.art.has-photo) .meta { color: rgba(255,255,255,.8); }
 .ccard:has(.art.has-photo) .pick { color: #fff; border-top-color: rgba(255,255,255,.25); }
@@ -473,7 +473,7 @@ body { counter-reset: sec; }
   .ccard, .ccard.compact { aspect-ratio: auto; }
   .ccard .art, .ccard:has(.art.has-photo) .art { position: relative; inset: auto; flex: none; aspect-ratio: 1 / 1; }
   .ccard:has(.art.has-photo) .art img { padding: 12%; }
-  .ccard:has(.art.has-photo) .body { position: relative; padding: 12px 14px 16px; background: none; color: var(--ink); }
+  .ccard:has(.art.has-photo) .body { position: relative; margin-top: 0; padding: 12px 14px 16px; background: none; color: var(--ink); }
   .ccard:has(.art.has-photo) .name { color: var(--ink); }
   .ccard:has(.art.has-photo) .meta { color: var(--ink-3); }
   .ccard .body { flex: 1; }
