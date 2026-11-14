@@ -1,7 +1,8 @@
 ---
 import Base from '../layouts/Base.astro';
 import CategoryCard from '../components/CategoryCard.astro';
-import { SITE } from '../config';
+import Thumb from '../components/Thumb.astro';
+import { SITE, SHOW_IMAGES } from '../config';
 import { categories, getCategory, meta } from '../lib/data';
 
 const sample = getCategory(categories[0].slug);
@@ -67,8 +68,9 @@ const jsonld = {
         <ol>
           {sample.products.slice(0, 3).map((p: any) => (
             <li>
-              <a href={`/${sample.slug}/${p.slug}/`}>
+              <a href={`/${sample.slug}/${p.slug}/`} class={SHOW_IMAGES ? 'with-thumb' : ''}>
                 <span class="n">{p.rank}</span>
+                {SHOW_IMAGES && <Thumb name={p.name} image={p.image} category={sample.slug} size="xs" />}
                 <span><span class="t">{p.name}</span><span class="m num">{fmt(p.opinions)} Redditors · {p.share_positive}% positive</span></span>
                 <span class="s num">{p.score}</span>
               </a>

@@ -482,3 +482,11 @@ details.how a { text-decoration: underline; text-underline-offset: 3px; }
   .site-footer::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--orange), transparent); opacity: .55; }
   .fgrid { border-top-color: var(--edge); }
 }
+
+/* ---- photo thumbs in the hero example, top-picks strip and related products ---- */
+.thumb.xs { width: 46px; height: 46px; border-radius: 8px; } .thumb.xs img { padding: 4px; }
+.thumb.md { width: 72px; height: 72px; border-radius: 10px; } .thumb.md img { padding: 6px; }
+.excerpt li a.with-thumb { grid-template-columns: 30px 46px minmax(0, 1fr) auto; align-items: center; }
+.answer a.with-thumb { display: grid; grid-template-columns: 72px minmax(0, 1fr); column-gap: 18px; align-items: center; }
+.answer a .txt { display: block; min-width: 0; }
+@media (max-width: 760px) { .answer a.with-thumb { grid-template-columns: 60px minmax(0, 1fr); } .thumb.md { width: 60px; height: 60px; } }

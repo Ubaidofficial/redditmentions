@@ -5,7 +5,7 @@ import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
-import { SITE } from '../../config';
+import { SITE, SHOW_IMAGES } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -122,10 +122,13 @@ const jsonld = {
         <div class="section-head"><h2 style="font:400 clamp(32px,4vw,48px)/1.05 var(--serif);letter-spacing:-.02em">More {cat.name.toLowerCase()}</h2></div>
         <div class="answer" style="border-top:0">
           {others.map((o: any) => (
-            <a href={`/${cat.slug}/${o.slug}/`}>
-              <span class="kicker">No. {o.rank}</span>
-              <span class="nm">{o.name}</span>
-              <span class="m num">{o.share_positive}% positive · {fmt(o.opinions)} Redditors</span>
+            <a href={`/${cat.slug}/${o.slug}/`} class={SHOW_IMAGES ? 'with-thumb' : ''}>
+              {SHOW_IMAGES && <Thumb name={o.name} image={o.image} category={cat.slug} size="md" />}
+              <span class="txt">
+                <span class="kicker">No. {o.rank}</span>
+                <span class="nm">{o.name}</span>
+                <span class="m num">{o.share_positive}% positive · {fmt(o.opinions)} Redditors</span>
+              </span>
             </a>
           ))}
         </div>
