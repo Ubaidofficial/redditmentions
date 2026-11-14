@@ -5,11 +5,12 @@ import { categories } from '../lib/data';
 ---
 <Base title="Page not found">
   <div class="wrap">
+    <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; Not found</p>
     <div class="prose">
-      <h1>Page not found</h1>
+      <h1>Page <em>not found</em></h1>
       <p>That page does not exist. Try one of the rankings:</p>
     </div>
-    <div class="cgrid" style="margin:32px 0 0">
+    <div class="cgrid compact" style="margin:8px 0 0">
       {categories.map((c: any) => <CategoryCard c={c} compact />)}
     </div>
   </div>

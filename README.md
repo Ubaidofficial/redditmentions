@@ -129,8 +129,13 @@ npm run deploy     # build, then deploy with wrangler (needs `npx wrangler login
 
 Environment variables (set in `site/.env` or the build environment):
 
-- `PUBLIC_AMAZON_TAG`: your Amazon Associates tag. Leave unset until the account is approved; buy
-  links are then plain, non-affiliate links and no affiliate disclosure is shown.
+- The Amazon Associates tag is **not** an environment variable: it is the one line in
+  `site/affiliate-tag.mjs` (currently `reddit-mentions-20`), so a stray `.env` value cannot change it.
+  Every Amazon link uses it, is marked `rel="sponsored"`, and the affiliate disclosure is shown.
+  **Publishing stops if any Amazon link in the built site is missing the tag, carries a different one, or
+  the old archive tag `redditrecs-g-20` appears anywhere**: the check is `site/scripts/check-amazon-links.mjs`,
+  run by `npm run deploy` and `./scripts/publish.sh` (run it alone with `cd site && npm run check:amazon`
+  after a build).
 - `PUBLIC_NOINDEX=true`: keep search engines out (previews).
 - `PUBLIC_PRODUCT_IMAGES=true`: show the Amazon-hosted product photos stored in the data. Off by default
   (the site shows a drawn illustration per category instead). Use it for noindex previews only, and

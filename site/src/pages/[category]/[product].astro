@@ -5,7 +5,7 @@ import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
-import { SITE } from '../../config';
+import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -60,7 +60,7 @@ const jsonld = {
       <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
       <p class="evline"><span class="ev" role="img" aria-label={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span> {evidence(p.opinions).label}: {fmt(p.opinions)} Redditors counted</p>
       <StandingStrip products={cat.products} product={p} categoryName={cat.name} />
-      {p.asin && <div class="pactions"><BuyButton asin={p.asin} /></div>}
+      {p.asin && <div class="pactions"><BuyButton asin={p.asin} />{AMAZON_TAG && <span class="aff">Affiliate link: we may earn a commission if you buy, at no extra cost to you.</span>}</div>}
     </header>
 
     {(p.likes.length > 0 || p.dislikes.length > 0) && (
@@ -122,10 +122,13 @@ const jsonld = {
         <div class="section-head"><h2 style="font:400 clamp(32px,4vw,48px)/1.05 var(--serif);letter-spacing:-.02em">More {cat.name.toLowerCase()}</h2></div>
         <div class="answer" style="border-top:0">
           {others.map((o: any) => (
-            <a href={`/${cat.slug}/${o.slug}/`}>
-              <span class="kicker">No. {o.rank}</span>
-              <span class="nm">{o.name}</span>
-              <span class="m num">{o.share_positive}% positive · {fmt(o.opinions)} Redditors</span>
+            <a href={`/${cat.slug}/${o.slug}/`} class={SHOW_IMAGES ? 'with-thumb' : ''}>
+              {SHOW_IMAGES && <Thumb name={o.name} image={o.image} category={cat.slug} size="md" />}
+              <span class="txt">
+                <span class="kicker">No. {o.rank}</span>
+                <span class="nm">{o.name}</span>
+                <span class="m num">{o.share_positive}% positive · {fmt(o.opinions)} Redditors</span>
+              </span>
             </a>
           ))}
         </div>

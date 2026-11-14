@@ -6,7 +6,7 @@ import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
 import CategoryCard from '../../components/CategoryCard.astro';
 import { evidence } from '../../lib/format';
-import { SITE } from '../../config';
+import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -115,10 +115,13 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
 
     <div class="answer">
       {picks.map((k) => (
-        <a href={`/${cat.slug}/${k.p.slug}/`}>
-          <span class="kicker">{k.label}</span>
-          <span class="nm">{k.p.name}</span>
-          <span class="m num">{k.note} · {k.p.share_positive}% positive</span>
+        <a href={`/${cat.slug}/${k.p.slug}/`} class={SHOW_IMAGES ? 'with-thumb' : ''}>
+          {SHOW_IMAGES && <Thumb name={k.p.name} image={k.p.image} category={cat.slug} size="md" />}
+          <span class="txt">
+            <span class="kicker">{k.label}</span>
+            <span class="nm">{k.p.name}</span>
+            <span class="m num">{k.note} · {k.p.share_positive}% positive</span>
+          </span>
         </a>
       ))}
     </div>
@@ -230,7 +233,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
 
     <p class="foot">
       Score runs from 0 to 100: positive opinions count 1, neutral ½, negative 0, adjusted for how many people were
-      counted. <a href="/methodology/">How it works</a>.
+      counted. <a href="/methodology/">How it works</a>.{AMAZON_TAG && <> Amazon links are affiliate links: we may earn a commission if you buy, at no extra cost to you.</>}
     </p>
 
     <section class="section" id="how">

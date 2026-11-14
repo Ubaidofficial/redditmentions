@@ -21,6 +21,9 @@ else
   echo "No site/.env found: deploying with defaults (indexable, no product photos)."
 fi
 
-echo "4/4 Building and deploying..."
+TAG="$(grep -o "'[^']*'" site/affiliate-tag.mjs | head -1 | tr -d "'")"
+echo "Amazon Associates tag: ${TAG} (defined in site/affiliate-tag.mjs; every Amazon link is checked for it before deploying)"
+
+echo "4/4 Building, checking Amazon links, and deploying..."
 (cd site && npm run deploy)
 echo "Done."

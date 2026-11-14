@@ -1,10 +1,9 @@
 ---
 import Base from '../layouts/Base.astro';
 import CategoryCard from '../components/CategoryCard.astro';
-import { SITE } from '../config';
-import { categories, getCategory, meta } from '../lib/data';
+import { SITE, AMAZON_TAG } from '../config';
+import { categories, meta } from '../lib/data';
 
-const sample = getCategory(categories[0].slug);
 const stats = meta.stats ?? {
   products: categories.reduce((n: number, c: any) => n + c.products, 0),
   opinions: categories.reduce((n: number, c: any) => n + c.opinions, 0),
@@ -31,7 +30,9 @@ const faqs = [
   },
   {
     q: 'Do you get paid for rankings?',
-    a: 'Rankings are calculated from Reddit opinions only. Buy buttons link to Amazon; if affiliate tags are in use, the links are marked and explained on the method page, and they never influence the ranking.',
+    a: AMAZON_TAG
+      ? 'Rankings are calculated from Reddit opinions only. Our Amazon buy buttons are affiliate links: if you buy through them we may earn a commission, at no extra cost to you. Commissions never influence the ranking, and the links are marked as sponsored.'
+      : 'Rankings are calculated from Reddit opinions only. Buy buttons link to Amazon; if affiliate tags are in use, the links are marked and explained on the method page, and they never influence the ranking.',
   },
 ];
 const jsonld = {
@@ -53,7 +54,7 @@ const jsonld = {
         <form class="ask" id="search" role="search" action="#categories" hidden>
           <label class="sr" for="cat-q">Search product categories</label>
           <span class="q" aria-hidden="true">?</span>
-          <input id="cat-q" type="search" autocomplete="off" placeholder="What are you shopping for? e.g. robot vacuums" />
+          <input id="cat-q" type="search" autocomplete="off" placeholder="Search, e.g. robot vacuums" />
           <button class="btn btn-ink" type="submit">Find</button>
         </form>
         <ul class="proof" aria-label="Why trust the rankings">
@@ -62,27 +63,13 @@ const jsonld = {
           <li>Rankings use Reddit opinions only</li>
         </ul>
       </div>
-      <aside class="excerpt" aria-label="Example ranking">
-        <span class="kicker">{sample.name} · top three</span>
-        <ol>
-          {sample.products.slice(0, 3).map((p: any) => (
-            <li>
-              <a href={`/${sample.slug}/${p.slug}/`}>
-                <span class="n">{p.rank}</span>
-                <span><span class="t">{p.name}</span><span class="m num">{fmt(p.opinions)} Redditors · {p.share_positive}% positive</span></span>
-                <span class="s num">{p.score}</span>
-              </a>
-            </li>
-          ))}
-        </ol>
-      </aside>
     </div>
   </section>
 
   <div class="wrap">
     <section class="section" id="categories">
       <div class="section-head"><h2>Browse by category</h2><span class="kicker" id="cat-count">{categories.length} rankings</span></div>
-      <div class="cgrid" id="cgrid">
+      <div class={`cgrid${categories.length <= 9 ? ' roomy' : ''}`} id="cgrid">
         {categories.map((c: any) => <CategoryCard c={c} />)}
       </div>
       <p class="no-match" id="no-match" hidden>No ranking for that yet. Try a broader word, like “vacuum” or “headphones”.</p>

@@ -317,7 +317,7 @@ def main():
             ren = first_rule(cur["rename"], key[0], normed)
             if ren:
                 # Shorter display name; remember the old address so it can redirect to the new one.
-                g["old_slug"] = slugify(tidy_name(display_name(g["brand"], g["name"])))
+                g["old_slugs"] = [slugify(tidy_name(display_name(g["brand"], g["name"])))] + list(ren.get("previous_slugs") or [])
                 g["brand"], g["name"] = ren.get("brand") or g["brand"], ren["name"]
                 renamed += 1
             kept[key] = g
@@ -360,7 +360,7 @@ def main():
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
-                "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_threads": g["threads"], "_old_slug": g.get("old_slug"),
+                "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_threads": g["threads"], "_old_slugs": g.get("old_slugs") or [],
                 "likes": [{"title": t, "count": k} for t, k in likes],
                 "dislikes": [{"title": t, "count": k} for t, k in dislikes],
                 "quotes": pick_quotes(g["quotes"], "positive", 3) + pick_quotes(g["quotes"], "negative", 2),
@@ -379,9 +379,9 @@ def main():
                 slug, k = f"{base}-{k}", k + 1
             used.add(slug)
             p["rank"], p["slug"] = i, slug
-            old_slug = p.pop("_old_slug")
-            if old_slug and old_slug != slug:
-                redirects.append((c["slug"], old_slug, slug))
+            for old_slug in p.pop("_old_slugs"):
+                if old_slug != slug:
+                    redirects.append((c["slug"], old_slug, slug))
             if len(p["name"]) > 50:
                 long_names.append((c["slug"], p["name"]))
         lines = {}
@@ -405,7 +405,9 @@ def main():
                       f, ensure_ascii=False, separators=(",", ":"))
         meta_cats.append({"slug": c["slug"], "name": c["name"], "products": len(ranked),
                           "opinions": sum(p["opinions"] for p in ranked),
-                          "top_pick": ranked[0]["name"] if ranked else None})
+                          "top_pick": ranked[0]["name"] if ranked else None,
+                          # photo for the category card: the best-ranked product (of the top 5) that has one
+                          "top_image": next((p["image"] for p in ranked[:5] if p.get("image")), None)})
         print(f"  {c['name']:<22} {len(ranked):>3} ranked products, top: {ranked[0]['name'] if ranked else '-'}")
 
     meta_cats = [m for m in meta_cats if m["products"] > 0]

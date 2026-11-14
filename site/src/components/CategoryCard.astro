@@ -1,12 +1,20 @@
 ---
 import CategoryIcon from './CategoryIcon.astro';
-// One category tile: illustration, name, how much evidence, and the current top pick.
+import { SHOW_IMAGES } from '../config';
+// One category tile: a picture area (the top pick's photo when photos are enabled, otherwise the
+// drawn illustration), the name, how much evidence, and the current top pick.
 const { c, compact = false } = Astro.props;
 const fmt = (n: number) => n.toLocaleString('en-US');
+const photo = SHOW_IMAGES && c.top_image ? c.top_image : null;
 ---
 <a class={`ccard${compact ? ' compact' : ''}`} href={`/${c.slug}/`} data-name={c.name.toLowerCase()}>
-  <span class="ico"><CategoryIcon slug={c.slug} /></span>
-  <span class="name">{c.name}</span>
-  <span class="meta num">{c.products} products · {fmt(c.opinions)} opinions</span>
-  {!compact && c.top_pick && <span class="pick"><span class="kicker">Top pick</span>{c.top_pick}</span>}
+  <span class={`art${photo ? ' has-photo' : ''}`}>
+    <CategoryIcon slug={c.slug} />
+    {photo && <img src={photo} alt="" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="var a=this.parentNode;a.classList.remove('has-photo');this.remove()" />}
+  </span>
+  <span class="body">
+    <span class="name">{c.name}</span>
+    <span class="meta num">{c.products} products · {fmt(c.opinions)} opinions</span>
+    {!compact && c.top_pick && <span class="pick"><span class="kicker">Top pick</span>{c.top_pick}</span>}
+  </span>
 </a>
