@@ -94,7 +94,7 @@ filter, series and list pages are structured (used to build the ranking extracto
 are years old, and `families` merges variants of one product line into a single entry (and can rename
 long retailer titles). Each rule is a regular expression tested against the product's normalised name.
 After a run the builder prints "possible duplicates" it could not merge, so you can add rules for them.
-Entries that combine several products show "Combines N variants" and list them on their page.
+Entries that combine several products show "Includes N other variants" and list them on their page.
 
 `rename` gives one product a shorter display name. Its old web address then redirects to the new one
 automatically (the builder writes `site/public/_redirects`, which Cloudflare reads), so existing links and
