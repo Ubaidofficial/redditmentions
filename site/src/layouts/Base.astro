@@ -17,6 +17,10 @@ const gtm = !!GTM_ID && !noindex;
 <!doctype html>
 <html lang="en">
   <head>
+    <script is:inline>
+      // Light is the default. Dark is used only if the visitor chose it with the header toggle.
+      try { if (localStorage.getItem('theme') === 'dark') document.documentElement.dataset.theme = 'dark'; } catch (e) {}
+    </script>
     {gtm && (
       <>
         <!-- Google Tag Manager -->
@@ -34,7 +38,7 @@ const gtm = !!GTM_ID && !noindex;
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta name="theme-color" content="#ff4500" />
+    <meta name="theme-color" content="#faf8f4" />
     {noindex && <meta name="robots" content="noindex,nofollow" />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
@@ -71,6 +75,10 @@ const gtm = !!GTM_ID && !noindex;
           </details>
           <a class="nav-ask" href="/#search">Search rankings</a>
           <a href="/methodology/">Method</a>
+          <button class="theme-toggle" type="button" aria-label="Dark mode" aria-pressed="false" title="Toggle dark mode">
+            <svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A8.5 8.5 0 1 1 11.2 3a6.6 6.6 0 0 0 9.8 9.8z"/></svg>
+            <svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M18.7 5.3l-1.6 1.6M6.9 17.1l-1.6 1.6"/></svg>
+          </button>
         </nav>
       </div>
     </header>
@@ -101,6 +109,29 @@ const gtm = !!GTM_ID && !noindex;
         </div>
       </div>
     </footer>
+    <script is:inline>
+      // Theme toggle: remembers the choice in this browser only.
+      (function () {
+        var root = document.documentElement, btn = document.querySelector('.theme-toggle');
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (!btn) return;
+        function sync() {
+          var dark = root.dataset.theme === 'dark';
+          btn.setAttribute('aria-pressed', String(dark));
+          btn.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+          if (meta) meta.setAttribute('content', dark ? '#211e1b' : '#faf8f4');
+        }
+        sync();
+        btn.addEventListener('click', function () {
+          var dark = root.dataset.theme !== 'dark';
+          root.classList.add('theme-anim');
+          root.dataset.theme = dark ? 'dark' : 'light';
+          try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch (e) {}
+          sync();
+          setTimeout(function () { root.classList.remove('theme-anim'); }, 350);
+        });
+      })();
+    </script>
     <script is:inline>
       // Close the Categories menu on Escape, on a click elsewhere, and after choosing a link.
       (function () {
