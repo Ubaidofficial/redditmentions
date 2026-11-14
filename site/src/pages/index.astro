@@ -1,7 +1,7 @@
 ---
 import Base from '../layouts/Base.astro';
 import CategoryCard from '../components/CategoryCard.astro';
-import { SITE } from '../config';
+import { SITE, AMAZON_TAG } from '../config';
 import { categories, meta } from '../lib/data';
 
 const stats = meta.stats ?? {
@@ -30,7 +30,9 @@ const faqs = [
   },
   {
     q: 'Do you get paid for rankings?',
-    a: 'Rankings are calculated from Reddit opinions only. Buy buttons link to Amazon; if affiliate tags are in use, the links are marked and explained on the method page, and they never influence the ranking.',
+    a: AMAZON_TAG
+      ? 'Rankings are calculated from Reddit opinions only. Our Amazon buy buttons are affiliate links: if you buy through them we may earn a commission, at no extra cost to you. Commissions never influence the ranking, and the links are marked as sponsored.'
+      : 'Rankings are calculated from Reddit opinions only. Buy buttons link to Amazon; if affiliate tags are in use, the links are marked and explained on the method page, and they never influence the ranking.',
   },
 ];
 const jsonld = {

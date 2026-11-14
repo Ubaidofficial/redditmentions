@@ -21,6 +21,14 @@ else
   echo "No site/.env found: deploying with defaults (indexable, no product photos)."
 fi
 
-echo "4/4 Building and deploying..."
+TAG="${PUBLIC_AMAZON_TAG:-$( (grep -E '^PUBLIC_AMAZON_TAG=' site/.env 2>/dev/null || true) | head -1 | cut -d= -f2- )}"
+if [ -n "$TAG" ]; then
+  echo "Amazon Associates tag: $TAG (every Amazon link will be checked for it before deploying)"
+else
+  echo "WARNING: PUBLIC_AMAZON_TAG is not set in site/.env, so Amazon links would be untagged."
+  echo "         The deploy will stop at the link check. Add PUBLIC_AMAZON_TAG=yourtag-20 to site/.env."
+fi
+
+echo "4/4 Building, checking Amazon links, and deploying..."
 (cd site && npm run deploy)
 echo "Done."

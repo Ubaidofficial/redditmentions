@@ -554,3 +554,5 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 :root[data-theme="dark"] .site-footer::before { content: ""; position: absolute; left: 0; right: 0; top: -1px; height: 1px; background: linear-gradient(90deg, transparent, var(--orange), transparent); opacity: .6; }
 :root[data-theme="dark"] .fgrid { border-top-color: var(--edge); }
 @media (max-width: 720px) { :root[data-theme="dark"] .ccard:has(.art.has-photo) .body { background: none; } }
+
+.pactions .aff { flex-basis: 100%; font: 450 13px/1.4 var(--sans); color: var(--ink-3); margin-top: -8px; }

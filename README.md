@@ -129,8 +129,12 @@ npm run deploy     # build, then deploy with wrangler (needs `npx wrangler login
 
 Environment variables (set in `site/.env` or the build environment):
 
-- `PUBLIC_AMAZON_TAG`: your Amazon Associates tag. Leave unset until the account is approved; buy
-  links are then plain, non-affiliate links and no affiliate disclosure is shown.
+- `PUBLIC_AMAZON_TAG`: your Amazon Associates tag (for example `yourtag-20`). When set, every Amazon
+  link carries it, is marked `rel="sponsored"`, and the affiliate disclosure is shown. **Publishing
+  stops if any Amazon link in the built site is missing the tag** (or carries a different one): the
+  check is `site/scripts/check-amazon-links.mjs`, run by `npm run deploy` and `./scripts/publish.sh`
+  (run it alone with `cd site && npm run check:amazon` after a build). Preview builds
+  (`PUBLIC_NOINDEX=true`) only warn. Without a tag, links are plain and no disclosure is shown.
 - `PUBLIC_NOINDEX=true`: keep search engines out (previews).
 - `PUBLIC_PRODUCT_IMAGES=true`: show the Amazon-hosted product photos stored in the data. Off by default
   (the site shows a drawn illustration per category instead). Use it for noindex previews only, and
