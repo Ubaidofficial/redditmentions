@@ -141,6 +141,12 @@ Environment variables (set in `site/.env` or the build environment):
   (the site shows a drawn illustration per category instead). Use it for noindex previews only, and
   switch to Amazon's official image links once your Associates account is approved: check the Associates
   Program Operating Agreement before showing Amazon's images on a live site.
+- More photos: the data builder also asks Amazon for the picture of any product that has an Amazon id but no
+  archived photo, and keeps it only if a real 500x500 JPEG comes back. It prints how many photos came from the
+  archive and how many from Amazon by product id; answers are remembered in `output/asin_photos.json`.
+  `python3 scripts/build_site_data.py --no-asin-photos` skips this, `--refresh-asin-photos` asks again. This uses an
+  older Amazon image address that is not documented and could stop working; products then fall back to the
+  drawn illustration. The same Associates-terms question as for the other photos applies.
 
 ## Publishing
 
