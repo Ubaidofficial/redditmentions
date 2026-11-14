@@ -10,9 +10,13 @@ export const SITE = {
     'AskTheSubs is an independent site. It is not affiliated with, endorsed by, or sponsored by Reddit, Inc.',
 };
 
-// Set PUBLIC_AMAZON_TAG (in site/.env or the build environment) only once you have an
-// approved Amazon Associates account. Without it, buy links are plain, non-affiliate links.
-export const AMAZON_TAG: string = import.meta.env.PUBLIC_AMAZON_TAG ?? '';
+// The Amazon Associates tag lives in one place (affiliate-tag.mjs); there is deliberately no environment override, so a stray
+// .env value cannot put a different tag on the site. scripts/check-amazon-links.mjs verifies the built output before every deploy.
+import { AMAZON_TAG as TAG } from '../affiliate-tag.mjs';
+export const AMAZON_TAG: string = TAG;
+
+/** True only for a real Amazon product id (10 characters, A-Z and 0-9). */
+export const isAsin = (v: unknown): v is string => typeof v === 'string' && /^[A-Z0-9]{10}$/.test(v);
 
 // Google Tag Manager container for askthesubs.com (Google's "Install manually" code for it). Set
 // PUBLIC_GTM_ID to another container, or to an empty value to switch tracking off.
