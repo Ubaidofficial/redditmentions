@@ -28,11 +28,16 @@ What it does to the raw archive data:
     (series) RedditRecs defined, which extract.py saves in output/json
   * stores the Amazon-hosted product photo link (never a copy of the photo); the site only
     shows photos when PUBLIC_PRODUCT_IMAGES=true
+  * for products that have an Amazon id but no archived photo, asks Amazon's image server for the picture of that
+    id and keeps it only if a real JPEG comes back (Amazon returns a blank placeholder for ids it has no picture
+    for). Answers are remembered in <data>/asin_photos.json; --no-asin-photos turns this off, --refresh-asin-photos
+    asks again. The build prints how many photos came from where.
   * stores the Amazon product id (ASIN) only, never the old affiliate tag; the link goes to the
     most-discussed variant that has an Amazon listing
 """
-import argparse, csv, json, math, os, re, sys, unicodedata
+import argparse, csv, json, math, os, re, sys, unicodedata, urllib.request
 from collections import Counter, defaultdict
+from concurrent.futures import ThreadPoolExecutor
 
 csv.field_size_limit(min(sys.maxsize, 2**31 - 1))
 
@@ -95,6 +100,45 @@ def num(x):
 def asin_of(url):
     m = re.search(r"/dp/([A-Z0-9]{10})", url or "")
     return m.group(1) if m else None
+
+
+# The ".01.LZZZZZZZ.jpg" form returns the 500x500 picture; other size options on this endpoint return a 160x160 thumbnail.
+ASIN_PHOTO = "https://m.media-amazon.com/images/P/{asin}.01.LZZZZZZZ.jpg"
+
+
+def fetch_asin_photo(asin):
+    """Ask Amazon's image server for a product's picture by its id. Returns (url or None, definitive).
+    A real picture is a JPEG of more than 2 KB: for ids it does not know, Amazon returns a tiny blank placeholder.
+    `definitive` is False after a network error, so those answers are not remembered."""
+    url = ASIN_PHOTO.format(asin=asin)
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=20) as r:
+            ok = r.status == 200 and r.headers.get("content-type", "").startswith("image/")
+            data = r.read() if ok else b""
+        return (url if ok and len(data) > 2000 and data[:2] == b"\xff\xd8" else None), True
+    except urllib.error.HTTPError as e:
+        return None, e.code in (403, 404)
+    except Exception:
+        return None, False
+
+
+def fill_asin_photos(ranked, cache, workers=8):
+    """Give products that have an Amazon id but no photo in the archive the picture Amazon serves for that id.
+    Answers are cached in `cache` (asin -> url or None) so later runs do not ask again. Returns how many were filled."""
+    todo = sorted({p["asin"] for p in ranked if not p["image"] and p["asin"] and p["asin"] not in cache})
+    if todo:
+        with ThreadPoolExecutor(workers) as ex:
+            for asin, (url, definitive) in zip(todo, ex.map(fetch_asin_photo, todo)):
+                if definitive:
+                    cache[asin] = url
+    filled = 0
+    for p in ranked:
+        if not p["image"] and p["asin"] and cache.get(p["asin"]):
+            p["image"] = cache[p["asin"]]
+            p["_by_asin"] = True
+            filled += 1
+    return filled
 
 
 def read(folder, name):
@@ -217,6 +261,9 @@ def main():
     ap.add_argument("--categories-json", help="optional JSON file replacing the built-in category list")
     ap.add_argument("--redirects", default=os.path.join("site", "public", "_redirects"),
                     help="where to write redirects from old product addresses to renamed ones")
+    ap.add_argument("--no-asin-photos", action="store_true",
+                    help="do not ask Amazon for pictures of products that have an Amazon id but no archived photo")
+    ap.add_argument("--refresh-asin-photos", action="store_true", help="forget remembered answers and ask Amazon again")
     ap.add_argument("--curation", default=os.path.join(os.path.dirname(os.path.abspath(__file__)), "curation.json"),
                     help="rules for dropping old products and merging product families")
     a = ap.parse_args()
@@ -333,6 +380,14 @@ def main():
         if old.endswith(".json"):
             os.remove(os.path.join(a.out, old))
     meta_cats, all_subs, redirects, long_names = [], set(), [], []
+    photo_cache_path = os.path.join(a.data, "asin_photos.json")
+    photo_cache = {}
+    if not a.refresh_asin_photos and os.path.exists(photo_cache_path):
+        try:
+            photo_cache = json.load(open(photo_cache_path, encoding="utf-8"))
+        except (OSError, ValueError):
+            photo_cache = {}
+    photo_totals = {"products": 0, "archive": 0, "asin": 0}
     for c in cats:
         ranked = []
         for key, g in groups.items():
@@ -384,6 +439,12 @@ def main():
                     redirects.append((c["slug"], old_slug, slug))
             if len(p["name"]) > 50:
                 long_names.append((c["slug"], p["name"]))
+        by_asin = 0 if a.no_asin_photos else fill_asin_photos(ranked, photo_cache)
+        for p in ranked:
+            p.pop("_by_asin", None)
+        photo_totals["products"] += len(ranked)
+        photo_totals["asin"] += by_asin
+        photo_totals["archive"] += sum(1 for p in ranked if p["image"]) - by_asin
         lines = {}
         for p in ranked:
             toks = norm(p["name"]).split()
@@ -408,7 +469,8 @@ def main():
                           "top_pick": ranked[0]["name"] if ranked else None,
                           # photo for the category card: the best-ranked product (of the top 5) that has one
                           "top_image": next((p["image"] for p in ranked[:5] if p.get("image")), None)})
-        print(f"  {c['name']:<22} {len(ranked):>3} ranked products, top: {ranked[0]['name'] if ranked else '-'}")
+        print(f"  {c['name']:<22} {len(ranked):>3} ranked products, {sum(1 for p in ranked if p['image'])} with a photo, "
+              f"top: {ranked[0]['name'] if ranked else '-'}")
 
     meta_cats = [m for m in meta_cats if m["products"] > 0]
     with open(os.path.join(a.out, "categories.json"), "w", encoding="utf-8") as f:
@@ -417,6 +479,13 @@ def main():
                              "opinions": sum(m["opinions"] for m in meta_cats), "subreddits": len(all_subs)},
                    "categories": meta_cats}, f, ensure_ascii=False, indent=1)
     print(f"wrote {len(meta_cats)} categories to {a.out}")
+    if not a.no_asin_photos:
+        os.makedirs(a.data, exist_ok=True)
+        with open(photo_cache_path, "w", encoding="utf-8") as f:
+            json.dump(photo_cache, f, indent=0)
+    pt = photo_totals
+    print(f"photos: {pt['archive'] + pt['asin']} of {pt['products']} ranked products "
+          f"({pt['archive']} from the archive, {pt['asin']} from Amazon by product id; the rest show an illustration)")
 
     # Old addresses of renamed products -> new ones (Cloudflare reads _redirects from the site root).
     os.makedirs(os.path.dirname(a.redirects), exist_ok=True)
