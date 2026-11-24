@@ -23,6 +23,14 @@ const SITEMAP_ALLOWLIST = new Set(
     '/ultrawide-monitors/lg-ultragear-45gr65dc-b/', // #1; searched as "lg 45gr65dc-b review"
     '/wireless-earbuds/anker-soundcore-liberty-4-nc/', // searched as "liberty 4 nc", position 6
     '/wireless-earbuds/anker-soundcore-space-a40/', // #1 wireless earbuds
+    // Batch 3 (2026-11-24): batch 2 was fully indexed within a day. The #1 product in the two categories that had no
+    // product page listed, the most-discussed product in three categories, and one with search impressions.
+    '/fitness-trackers/garmin-forerunner-255/', // #1 and the most-discussed top pick (722 Redditors)
+    '/vacuum-cleaners/sebo-mechanical/', // #1 vacuum cleaner
+    '/vacuum-cleaners/miele-complete-c3/', // most discussed vacuum (1,113 Redditors)
+    '/fitness-trackers/garmin-fenix-7-series/', // most discussed fitness tracker (1,043 Redditors)
+    '/ultrawide-monitors/lg-45gx950a-b/', // most discussed ultrawide (1,036 Redditors)
+    '/wireless-earbuds/earfun-air-pro-4/', // "earfun" already gets impressions; 309 Redditors
   ].map((path) => SITE_URL + path),
 );
 
