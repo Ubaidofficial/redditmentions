@@ -1,5 +1,5 @@
 {
- "_readme": "Editable rules applied by build_site_data.py. 'match' is a regular expression tested against the product's normalised name (lowercase words, '+' becomes 'plus', symbols removed). First matching rule wins. 'exclude' drops a product; 'families' merges every product it matches into ONE entry named 'name' (also used just to rename). Check the result with: python3 scripts/build_site_data.py 'rename' gives ONE product a shorter display name ('name' is the full name shown, 'brand' optional); its old web address redirects to the new one automatically. The build prints any names still over 50 characters so you can add rules for them. A rename rule may also list 'previous_slugs': earlier web addresses of the page that should redirect straight to the new one.",
+ "_readme": "Editable rules applied by build_site_data.py. 'match' is a regular expression tested against the product's normalised name (lowercase words, '+' becomes 'plus', symbols removed). First matching rule wins. 'exclude' drops a product; 'families' merges every product it matches into ONE entry named 'name' (also used just to rename). Check the result with: python3 scripts/build_site_data.py 'rename' gives ONE product a shorter display name ('name' is the full name shown, 'brand' optional); its old web address redirects to the new one automatically. The build prints any names still over 50 characters so you can add rules for them. A rename rule may also list 'previous_slugs': earlier web addresses of the page that should redirect straight to the new one. Products merged by a 'families' rule redirect from their old addresses to the family page automatically (a family rule may also list 'previous_slugs'). 'distinct' lists products the build's duplicate check flags that are really separate models: 'match' is a list of regular expressions, and a flagged group is no longer reported when every name in it matches one of them.",
  "exclude": [
   {
    "category": "fitness-trackers",
@@ -335,6 +335,20 @@
    "match": "^kenmore 400 series",
    "name": "Kenmore 400 Series",
    "brand": "Kenmore"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^shark ai ultra (rv2502ae|self empty robot vacuum base model)",
+   "name": "Shark AI Ultra Self-Empty",
+   "brand": "Shark",
+   "why": "RV2502AE is the model number of the Shark AI Ultra with the self-empty base, so the two listings are one product"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": "^numatic( international)? henry quick",
+   "name": "Numatic Henry Quick",
+   "brand": "Numatic",
+   "why": "Henry Quick Pet is the Henry Quick (HVB160) sold with pet tools; Reddit discusses them as one vacuum"
   }
  ],
  "rename": [
@@ -376,6 +390,65 @@
    "match": "^kenmore 81714 pet friendly canister vacuum with ultra plush nozzle",
    "name": "Kenmore 81714 Pet Friendly Canister",
    "why": "Dropped the accessory description"
+  }
+ ],
+ "distinct": [
+  {
+   "category": "baby-strollers",
+   "match": [
+    "^veer cruiser city( xl)?$"
+   ],
+   "why": "The City XL is a larger model than the Cruiser City"
+  },
+  {
+   "category": "fitness-trackers",
+   "match": [
+    "^amazfit t rex 3( pro)?$"
+   ],
+   "why": "The T-Rex 3 Pro is a separate, higher-end watch"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": [
+    "^dell ultrasharp 40 u4025qw$",
+    "^dell ultrasharp 40 curved wuhd monitor u4021qw$"
+   ],
+   "why": "U4021QW (2021) and U4025QW (2024) are different generations"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": [
+    "^samsung odyssey neo g9 g95n[ac]"
+   ],
+   "why": "G95NA is the 49-inch model, G95NC the 57-inch model"
+  },
+  {
+   "category": "ultrawide-monitors",
+   "match": [
+    "^samsung odyssey oled g[89]$"
+   ],
+   "why": "The OLED G8 (34-inch) and OLED G9 (49-inch) are different monitors"
+  },
+  {
+   "category": "wireless-earbuds",
+   "match": [
+    "^anker soundcore liberty 4 (pro|nc)$"
+   ],
+   "why": "Liberty 4 Pro and Liberty 4 NC are separate earbuds"
+  },
+  {
+   "category": "wireless-earbuds",
+   "match": [
+    "^jabra elite 8 active( gen 2)?$"
+   ],
+   "why": "Gen 2 is a newer model"
+  },
+  {
+   "category": "vacuum-cleaners",
+   "match": [
+    "^miele swing h1 "
+   ],
+   "why": "The Swing H1 upright and the Swing H1 QuickStep stick are different vacuums"
   }
  ]
 }
