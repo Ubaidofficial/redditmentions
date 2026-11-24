@@ -3,6 +3,7 @@ import Base from '../layouts/Base.astro';
 import CategoryCard from '../components/CategoryCard.astro';
 import { SITE, AMAZON_TAG } from '../config';
 import { categories, meta } from '../lib/data';
+import { firstFit, joinList } from '../lib/seo';
 
 const stats = meta.stats ?? {
   products: categories.reduce((n: number, c: any) => n + c.products, 0),
@@ -35,13 +36,57 @@ const faqs = [
       : 'Rankings are calculated from Reddit opinions only. Buy buttons link to Amazon; if affiliate tags are in use, the links are marked and explained on the method page, and they never influence the ranking.',
   },
 ];
-const jsonld = {
-  '@context': 'https://schema.org',
-  '@type': 'FAQPage',
-  mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
-};
+// Search snippet: name the categories, since that is what people search for ("best robot vacuum reddit").
+const catNames = categories.map((c: any) => c.name.toLowerCase());
+const title = `Best Products According to Reddit, Ranked | ${SITE.name}`;
+const named = catNames.length > 4 ? [...catNames.slice(0, 4), 'more'] : catNames;
+const description = firstFit(
+  [
+    `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. One vote per person; every quote links to its source.`,
+    `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions, with every quote linked to its source.`,
+    `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. Every quote links to its source.`,
+    `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions.`,
+  ],
+  160,
+);
+const abs = (path: string) => new URL(path, SITE.url).toString();
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    '@id': abs('/#website'),
+    url: abs('/'),
+    name: SITE.name,
+    description: SITE.description,
+    inLanguage: 'en',
+    publisher: { '@id': abs('/#organization') },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': abs('/#organization'),
+    name: SITE.name,
+    url: abs('/'),
+    logo: abs('/favicon.svg'),
+    description: SITE.description,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ItemList',
+    name: 'Product rankings according to Reddit',
+    numberOfItems: categories.length,
+    itemListElement: categories.map((c: any, i: number) => ({
+      '@type': 'ListItem', position: i + 1, name: `Best ${c.name} according to Reddit`, url: abs(`/${c.slug}/`),
+    })),
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  },
+];
 ---
-<Base title={`${SITE.name}: ${SITE.tagline}`} jsonld={jsonld}>
+<Base title={title} description={description} jsonld={jsonld}>
   <section class="field">
     <div class="wrap">
       <div>

@@ -5,6 +5,7 @@ import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
+import { firstFit, joinList, phrase } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
@@ -24,22 +25,80 @@ const quotes = [
 ];
 const fmt = (n: number) => n.toLocaleString('en-US');
 const abs = (path: string) => new URL(path, SITE.url).toString();
-const jsonld = {
-  '@context': 'https://schema.org',
-  '@type': 'BreadcrumbList',
-  itemListElement: [
-    { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
-    { '@type': 'ListItem', position: 2, name: cat.name, item: abs(`/${cat.slug}/`) },
-    { '@type': 'ListItem', position: 3, name: p.name, item: abs(`/${cat.slug}/${p.slug}/`) },
+const lower = cat.name.toLowerCase();
+const like = p.likes[0] ? phrase(p.likes[0].title) : null;
+const dislike = p.dislikes[0] ? phrase(p.dislikes[0].title) : null;
+const likesText = p.likes.slice(0, 3).map((l: any) => phrase(l.title));
+const dislikesText = p.dislikes.slice(0, 3).map((d: any) => phrase(d.title));
+
+// Search snippet: people search "<product> reddit" and "<product> review", so the title says both.
+const title = firstFit(
+  [
+    `${p.name}: Reddit Reviews (${p.share_positive}% Positive)`,
+    `${p.name} Reddit Reviews`,
+    `${p.name} on Reddit`,
+    p.name,
   ],
-};
+  62,
+);
+// Longest version that fits: drop the closing note, then the complaint, then the praise.
+const lead = `${fmt(p.opinions)} Redditors on the ${p.name}: ${p.share_positive}% positive, ranked #${p.rank} of ${cat.products.length} ${lower}.`;
+const praise = like ? ` Praised for ${like}.` : '';
+const complaint = dislike ? ` Criticised for ${dislike}.` : '';
+const description = firstFit(
+  [
+    lead + praise + complaint + ' Quotes link to the original comments.',
+    lead + praise + complaint,
+    lead + praise,
+    lead + ' Quotes link to the original comments.',
+  ],
+  160,
+);
+// One-paragraph answer at the top, written to stand on its own (search snippets, AI answers).
+const verdictWord = p.share_positive >= 80 ? 'very positive' : p.share_positive >= 65 ? 'mostly positive' : p.share_positive >= 50 ? 'mixed but leaning positive' : 'mixed';
+const summary =
+  `Reddit's view of the ${p.name} is ${verdictWord}: ${p.share_positive}% of ${fmt(p.opinions)} Redditors were positive and ${p.share_negative}% negative, ` +
+  `which ranks it #${p.rank} of ${cat.products.length} ${lower} (score ${p.score}/100).` +
+  (like ? ` Most praised for ${like}.` : '') +
+  (dislike ? ` Most common complaint: ${dislike}.` : '');
+
+const faqs = [
+  {
+    q: `Is the ${p.name} good, according to Reddit?`,
+    a: summary,
+  },
+  ...(likesText.length
+    ? [{ q: `What do Redditors like about the ${p.name}?`, a: `The most mentioned strengths are ${likesText.join('; ')}.` }]
+    : []),
+  ...(dislikesText.length
+    ? [{ q: `What are the common complaints about the ${p.name}?`, a: `The most mentioned weaknesses are ${dislikesText.join('; ')}.` }]
+    : []),
+  ...(others.length
+    ? [{
+        q: `What are the alternatives to the ${p.name}?`,
+        a: `The ${others.length === 1 ? 'top-ranked alternative is' : 'top-ranked alternatives are'} ${joinList(others.map((o: any) => `${o.name} (#${o.rank}, ${o.share_positive}% positive)`))}. See the full ranking of ${cat.products.length} ${lower}.`,
+      }]
+    : []),
+];
+
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
+      { '@type': 'ListItem', position: 2, name: cat.name, item: abs(`/${cat.slug}/`) },
+      { '@type': 'ListItem', position: 3, name: p.name, item: abs(`/${cat.slug}/${p.slug}/`) },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  },
+];
 ---
-<Base
-  title={`${p.name}: What Reddit Says (${p.share_positive}% positive)`}
-  description={`${p.opinions} Reddit users on ${p.name}: ${p.share_positive}% positive, ${p.share_negative}% negative, with quotes and links to the original comments.`}
-  cta={!!p.asin}
-  jsonld={jsonld}
->
+<Base title={title} description={description} cta={!!p.asin} jsonld={jsonld}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {p.name}</p>
 
@@ -59,6 +118,7 @@ const jsonld = {
       </div>
       <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
       <p class="evline"><span class="ev" role="img" aria-label={evidence(p.opinions).label}>{[1, 2, 3, 4].map((i) => <i class={i <= evidence(p.opinions).dots ? 'on' : ''}></i>)}</span> {evidence(p.opinions).label}: {fmt(p.opinions)} Redditors counted</p>
+      <p class="tldr"><b>In short:</b> {summary}</p>
       <StandingStrip products={cat.products} product={p} categoryName={cat.name} />
       {p.asin && <div class="pactions"><BuyButton asin={p.asin} />{AMAZON_TAG && <span class="aff">Affiliate link: we may earn a commission if you buy, at no extra cost to you.</span>}</div>}
     </header>
@@ -116,6 +176,18 @@ const jsonld = {
         <ul class="variants">{p.variants.map((v: string) => <li>{v}</li>)}</ul>
       </details>
     )}
+
+    <section class="section">
+      <div class="section-head"><h2>Questions about the {p.name}</h2><span class="kicker">FAQ</span></div>
+      <div class="faq">
+        {faqs.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
 
     {others.length > 0 && (
       <section class="related">

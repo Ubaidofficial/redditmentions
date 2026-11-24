@@ -1,17 +1,10 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
 
-// Staged indexing: only these URLs go in the sitemap until they have been crawled and indexed.
-// To open the rest of the site up later, set SITEMAP_ALLOWLIST to null (or add URLs to the list).
-// Note this only limits the sitemap: every page stays crawlable through internal links.
-const SITEMAP_ALLOWLIST = new Set([
-  'https://askthesubs.com/',
-  'https://askthesubs.com/baby-strollers/',
-  'https://askthesubs.com/fitness-trackers/',
-  'https://askthesubs.com/robot-vacuums/',
-  'https://askthesubs.com/ultrawide-monitors/',
-  'https://askthesubs.com/vacuum-cleaners/',
-]);
+// Staged indexing: the sitemap started with only the home page and the category pages. By 2026-11-24 Google had
+// indexed the home page, the methodology page and 5 of the 6 category pages, so the sitemap now lists every page
+// (home, methodology, categories and all product pages). To go back to a short list, replace null with a Set of URLs.
+const SITEMAP_ALLOWLIST = null;
 
 // Fully static site: no adapter needed. Cloudflare Workers serves ./dist (see wrangler.jsonc).
 export default defineConfig({

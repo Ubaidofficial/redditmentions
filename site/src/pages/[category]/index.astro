@@ -6,6 +6,7 @@ import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
 import CategoryCard from '../../components/CategoryCard.astro';
 import { evidence } from '../../lib/format';
+import { firstFit, joinList, dataYear } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
@@ -49,6 +50,35 @@ const idx = categories.findIndex((c: any) => c.slug === cat.slug);
 const others = [...categories.slice(idx + 1), ...categories.slice(0, idx)].slice(0, 6);
 
 const lower = cat.name.toLowerCase();
+const year = dataYear(meta.comments_through);
+const top3 = products.slice(0, 3).map((p: any) => p.name);
+// Brand Redditors were most positive about, among the most-discussed brands (needs a real sample).
+const bestBrand = [...brandBoard].filter((b) => b.opinions >= 50).sort((a, b) => b.share - a.share || b.opinions - a.opinions)[0];
+
+// Search snippet: the keyword people use ("best X reddit"), the year of the data and the top picks by name.
+const title = firstFit(
+  [
+    `Best ${cat.name} According to Reddit (${year}): ${products.length} Ranked`,
+    `Best ${cat.name} According to Reddit (${year})`,
+    `Best ${cat.name} According to Reddit`,
+  ],
+  62,
+);
+const description = firstFit(
+  [
+    `Reddit's top-ranked ${lower}: ${joinList(top3)}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors' opinions, with links to the original comments.`,
+    `Reddit's top-ranked ${lower}: ${joinList(top3)}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors' opinions.`,
+    `Reddit's top-ranked ${lower}: ${joinList(top3.slice(0, 2))}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors' opinions.`,
+    `Reddit's top-ranked ${lower}: ${top3[0]}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors' opinions, with links to the original comments.`,
+  ],
+  160,
+);
+// One-paragraph answer at the top of the page, written to be quotable on its own (search snippets, AI answers).
+const summary =
+  `Based on ${fmt(totalOpinions)} Redditors' opinions in comments through ${meta.comments_through}, the top-ranked of ${products.length} ${lower} is ` +
+  `${top.name} (score ${top.score}/100, ${top.share_positive}% positive from ${fmt(top.opinions)} Redditors)` +
+  (products.length > 2 ? `, followed by ${products[1].name} and ${products[2].name}.` : '.') +
+  (mostDiscussed.slug !== top.slug ? ` The most discussed is ${mostDiscussed.name}, with ${fmt(mostDiscussed.opinions)} Redditors.` : '');
 const faqs = [
   {
     q: `What are the best ${lower} according to Reddit?`,
@@ -58,6 +88,16 @@ const faqs = [
     q: `How are ${lower} ranked?`,
     a: `Each Redditor counts once per product. Positive opinions count 1, neutral one half and negative 0, and the score is the lower bound of a 95% confidence interval (Wilson score) for that approval rate. A product liked by 90% of 20 people can rank below one liked by 85% of 300.`,
   },
+  {
+    q: `Which ${lower} are discussed most on Reddit?`,
+    a: `${joinList([...products].sort((a, b) => b.opinions - a.opinions).slice(0, 3).map((p: any) => `${p.name} (${fmt(p.opinions)} Redditors, ${p.share_positive}% positive)`))}.`,
+  },
+  ...(bestBrand && brandBoard.length > 1
+    ? [{
+        q: `Which ${lower} brand do Redditors like most?`,
+        a: `Among the ${brandBoard.length} most-discussed brands, Redditors are most positive about ${bestBrand.name}: ${bestBrand.share}% positive across ${fmt(bestBrand.opinions)} Redditors and ${bestBrand.products} ${bestBrand.products === 1 ? 'product' : 'products'}. Brand communities can skew toward their own brand, so compare individual products too.`,
+      }]
+    : []),
   {
     q: 'How recent is the data?',
     a: `Rankings use public Reddit comments collected through ${meta.comments_through}. Products released after that may be missing.`,
@@ -86,8 +126,9 @@ const jsonld = [
     '@context': 'https://schema.org',
     '@type': 'ItemList',
     name: `Best ${cat.name} according to Reddit`,
+    description,
     numberOfItems: products.length,
-    itemListElement: products.slice(0, 20).map((p: any) => ({
+    itemListElement: products.map((p: any) => ({
       '@type': 'ListItem', position: p.rank, name: p.name, url: abs(`/${cat.slug}/${p.slug}/`),
     })),
   },
@@ -96,11 +137,7 @@ const disc = cat.discussions && cat.discussions.top?.length ? cat.discussions : 
 const topQuote = (p: any) => p.quotes?.find((q: any) => q.sentiment === 'positive') ?? p.quotes?.[0] ?? null;
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
 ---
-<Base
-  title={`Best ${cat.name} According to Reddit (${products.length} ranked)`}
-  description={`${cat.name} ranked by what Reddit users recommend and warn against, with links to the original comments.`}
-  jsonld={jsonld}
->
+<Base title={title} description={description} jsonld={jsonld}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; {cat.name}</p>
     <header class="page-head">
@@ -111,6 +148,7 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
         Every product below has at least {meta.min_opinions} Redditors behind it. Rankings weigh how many people
         approve against how many were counted, so a few enthusiasts cannot carry a product to the top.
       </p>
+      <p class="tldr"><b>Short answer:</b> {summary}</p>
     </header>
 
     <div class="answer">
