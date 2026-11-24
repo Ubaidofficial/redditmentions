@@ -5,7 +5,7 @@ import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
-import { firstFit, joinList, phrase } from '../../lib/seo';
+import { firstFit, joinList, phrase, monthYear } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
@@ -18,7 +18,18 @@ export function getStaticPaths() {
 const { category, product } = Astro.params;
 const cat = getCategory(category as string);
 const p = cat.products.find((x: any) => x.slug === product);
-const others = cat.products.filter((x: any) => x.slug !== product).slice(0, 3);
+// Neighbours in the ranking (the products just above and below), so every page links somewhere different.
+const others = [...cat.products]
+  .filter((x: any) => x.slug !== product)
+  .sort((a: any, b: any) => Math.abs(a.rank - p.rank) - Math.abs(b.rank - p.rank) || a.rank - b.rank)
+  .slice(0, 3)
+  .sort((a: any, b: any) => a.rank - b.rank);
+// Newer data fields (older builds and the sample fixture may not have them).
+const subs: any[] = p.subreddits ?? [];
+const threads: any[] = p.threads ?? [];
+const timeline: any[] = p.timeline ?? [];
+const recent: any = p.recent ?? null;
+const maxYear = Math.max(1, ...timeline.map((t: any) => t.redditors));
 const quotes = [
   ...p.quotes.filter((q: any) => q.sentiment === 'positive'),
   ...p.quotes.filter((q: any) => q.sentiment === 'negative'),
@@ -62,21 +73,43 @@ const summary =
   (like ? ` Most praised for ${like}.` : '') +
   (dislike ? ` Most common complaint: ${dislike}.` : '');
 
+// Recent opinion against all-time, for the freshness line and the FAQ.
+const trend = recent
+  ? recent.share_positive - p.share_positive >= 5 ? 'higher than' : p.share_positive - recent.share_positive >= 5 ? 'lower than' : 'in line with'
+  : null;
+const recentLine = recent
+  ? `In the 12 months to ${monthYear(meta.comments_through)}, ${recent.share_positive}% of ${fmt(recent.redditors)} Redditors were positive, ${trend} the all-time ${p.share_positive}%.`
+  : '';
+const withCounts = (items: any[]) => joinList(items.slice(0, 3).map((x: any) => `${phrase(x.title)} (${x.count} mentions)`));
+
+// FAQ answers add facts the page does not already state in the same words (no copy of the summary above).
 const faqs = [
   {
     q: `Is the ${p.name} good, according to Reddit?`,
-    a: summary,
+    a:
+      `${p.share_positive >= 65 ? 'Mostly yes' : p.share_positive >= 50 ? 'For most people' : 'Opinions are split'}: ` +
+      `${fmt(p.positive)} of the ${fmt(p.opinions)} Redditors who gave an opinion liked it, and ${fmt(p.negative)} did not.` +
+      (recentLine ? ` ${recentLine}` : '') +
+      (p.first_date && p.last_date ? ` Comments counted run from ${monthYear(p.first_date)} to ${monthYear(p.last_date)}.` : ''),
   },
-  ...(likesText.length
-    ? [{ q: `What do Redditors like about the ${p.name}?`, a: `The most mentioned strengths are ${likesText.join('; ')}.` }]
+  ...(p.likes.length
+    ? [{ q: `What do Redditors like about the ${p.name}?`, a: `Redditors most often praise its ${withCounts(p.likes)}.` }]
     : []),
-  ...(dislikesText.length
-    ? [{ q: `What are the common complaints about the ${p.name}?`, a: `The most mentioned weaknesses are ${dislikesText.join('; ')}.` }]
+  ...(p.dislikes.length
+    ? [{ q: `What are the common complaints about the ${p.name}?`, a: `The complaints that come up most are ${withCounts(p.dislikes)}.` }]
+    : []),
+  ...(subs.length
+    ? [{
+        q: `Where is the ${p.name} discussed on Reddit?`,
+        a:
+          `Mostly in ${joinList(subs.slice(0, 3).map((x: any) => `r/${x.name} (${fmt(x.redditors)} Redditors)`))}.` +
+          (threads[0] ? ` The thread with the most Redditors counted is “${threads[0].title}” in r/${threads[0].subreddit}.` : ''),
+      }]
     : []),
   ...(others.length
     ? [{
         q: `What are the alternatives to the ${p.name}?`,
-        a: `The ${others.length === 1 ? 'top-ranked alternative is' : 'top-ranked alternatives are'} ${joinList(others.map((o: any) => `${o.name} (#${o.rank}, ${o.share_positive}% positive)`))}. See the full ranking of ${cat.products.length} ${lower}.`,
+        a: `Ranked closest to it: ${joinList(others.map((o: any) => `${o.name} (#${o.rank}, ${o.share_positive}% positive)`))}. See all ${cat.products.length} ${lower} ranked.`,
       }]
     : []),
 ];
@@ -106,6 +139,9 @@ const jsonld = [
       <div class="phead-top">
         <div>
           <span class="kicker">No. {p.rank} of {cat.products.length} · {cat.name}</span>
+          {p.first_date && p.last_date && (
+            <p class="fresh num">Reddit comments from {monthYear(p.first_date)} to {monthYear(p.last_date)} · data through {meta.comments_through}</p>
+          )}
           <h1>{p.name}</h1>
         </div>
         <Thumb name={p.name} brand={p.brand} image={p.image} category={cat.slug} size="lg" />
@@ -128,13 +164,23 @@ const jsonld = [
         <div class="good">
           <h2>Praised for</h2>
           {p.likes.length > 0
-            ? <ul>{p.likes.map((l: any) => <li><span>{l.title}</span><small>{l.count} mentions</small></li>)}</ul>
+            ? <ul>{p.likes.map((l: any) => (
+                <li>
+                  <span>{l.title}</span><small>{l.count} mentions</small>
+                  {l.quote && <span class="pq"><q>{l.quote.text}</q> <a href={l.quote.url} rel="nofollow noopener" target="_blank">r/{l.quote.subreddit} ↗</a></span>}
+                </li>
+              ))}</ul>
             : <p class="empty">Nothing stands out yet.</p>}
         </div>
         <div class="bad">
           <h2>Criticised for</h2>
           {p.dislikes.length > 0
-            ? <ul>{p.dislikes.map((d: any) => <li><span>{d.title}</span><small>{d.count} mentions</small></li>)}</ul>
+            ? <ul>{p.dislikes.map((d: any) => (
+                <li>
+                  <span>{d.title}</span><small>{d.count} mentions</small>
+                  {d.quote && <span class="pq"><q>{d.quote.text}</q> <a href={d.quote.url} rel="nofollow noopener" target="_blank">r/{d.quote.subreddit} ↗</a></span>}
+                </li>
+              ))}</ul>
             : <p class="empty">No recurring complaints.</p>}
         </div>
       </section>
@@ -142,7 +188,7 @@ const jsonld = [
 
     {quotes.length > 0 && (
       <section class="receipts">
-        <h2>The <em>receipts</em></h2>
+        <h2>The <em>receipts</em>: what Redditors said about the {p.name}</h2>
         {quotes.map((q: any) => (
           <blockquote class={q.sentiment === 'negative' ? 'neg' : 'pos'}>
             <div>
@@ -158,13 +204,53 @@ const jsonld = [
       </section>
     )}
 
-    <details class="how">
-      <summary>How is this score calculated?</summary>
-      <p>
-        Each Redditor counts once. Positive opinions count 1, neutral ½ and negative 0. The score is the lower bound of
-        a 95% confidence interval on that approval rate, so products with few opinions are held back.{' '}<a href="/methodology/">Full method</a>.
-      </p>
-    </details>
+    {(subs.length > 0 || threads.length > 0) && (
+      <section class="where" aria-labelledby="where-h">
+        <div class="section-head"><h2 id="where-h">Where Reddit discusses the {p.name}</h2><span class="kicker">{subs.length} communities</span></div>
+        {subs.length > 0 && (
+          <ul class="subs">
+            {subs.map((x: any) => <li><b>r/{x.name}</b><span class="num">{fmt(x.redditors)} Redditors</span></li>)}
+          </ul>
+        )}
+        {threads.length > 0 && (
+          <ol class="threads">
+            {threads.map((t: any) => (
+              <li>
+                {t.url ? <a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a> : <span>{t.title}</span>}
+                <small class="num">r/{t.subreddit} · {fmt(t.redditors)} {t.redditors === 1 ? 'Redditor' : 'Redditors'} counted{t.url ? ' ↗' : ''}</small>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
+    )}
+
+    {timeline.length > 0 && (
+      <section class="over-time" aria-labelledby="time-h">
+        <div class="section-head"><h2 id="time-h">Opinion over time</h2><span class="kicker">One vote per Redditor per year</span></div>
+        {recent && <p class="recent"><b>Last 12 months:</b> {recentLine}</p>}
+        <table class="years">
+          <thead><tr><th scope="col">Year</th><th scope="col">Redditors</th><th scope="col">Positive</th><th scope="col">Negative</th><th scope="col"><span class="sr">Share positive</span></th></tr></thead>
+          <tbody>
+            {timeline.map((t: any) => (
+              <tr>
+                <th scope="row" class="num">{t.year}</th>
+                <td class="num">{fmt(t.redditors)}</td>
+                <td class="num">{t.share_positive}%</td>
+                <td class="num">{t.share_negative}%</td>
+                <td><span class="ybar" style={`width:${Math.max(4, Math.round((100 * t.redditors) / maxYear))}%`}><i style={`width:${t.share_positive}%`}></i></span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <p class="sources-note">Bar length shows how many Redditors discussed it that year; the green part is the share who were positive. Years with fewer than 5 Redditors are left out.</p>
+      </section>
+    )}
+
+    <p class="howline">
+      Score: each Redditor counts once (positive 1, neutral ½, negative 0), adjusted for how many people were counted.{' '}
+      <a href="/methodology/">How rankings are made</a>.
+    </p>
 
     {p.variants && p.variants.length > 0 && (
       <details class="how">
@@ -191,7 +277,7 @@ const jsonld = [
 
     {others.length > 0 && (
       <section class="related">
-        <div class="section-head"><h2 style="font:400 clamp(32px,4vw,48px)/1.05 var(--serif);letter-spacing:-.02em">More {cat.name.toLowerCase()}</h2></div>
+        <div class="section-head"><h2 style="font:400 clamp(32px,4vw,48px)/1.05 var(--serif);letter-spacing:-.02em">Ranked near the {p.name}</h2><a class="textlink" href={`/${cat.slug}/`}>All {cat.products.length} {lower}</a></div>
         <div class="answer" style="border-top:0">
           {others.map((o: any) => (
             <a href={`/${cat.slug}/${o.slug}/`} class={SHOW_IMAGES ? 'with-thumb' : ''}>

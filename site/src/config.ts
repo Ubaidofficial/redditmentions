@@ -3,6 +3,8 @@ export const SITE = {
   name: 'AskTheSubs',
   domain: 'askthesubs.com',
   url: 'https://askthesubs.com',
+  // Public contact address (shown on /contact/ and in structured data).
+  email: 'hello@askthesubs.com',
   tagline: "What Reddit's communities actually recommend, ranked.",
   description:
     'Product rankings built from what people say in Reddit communities, with a link to the original comment behind every quote.',

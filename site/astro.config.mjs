@@ -31,6 +31,10 @@ const SITEMAP_ALLOWLIST = new Set(
     '/fitness-trackers/garmin-fenix-7-series/', // most discussed fitness tracker (1,043 Redditors)
     '/ultrawide-monitors/lg-45gx950a-b/', // most discussed ultrawide (1,036 Redditors)
     '/wireless-earbuds/earfun-air-pro-4/', // "earfun" already gets impressions; 309 Redditors
+    // Trust pages: who runs the site, how it makes money, how to reach it, how rankings are made.
+    '/about/',
+    '/contact/',
+    '/methodology/',
   ].map((path) => SITE_URL + path),
 );
 
