@@ -126,6 +126,10 @@ p { text-wrap: pretty; margin: 0; }
 .page-head h1 { font: 400 clamp(46px, 7.6vw, 104px)/.95 var(--serif); letter-spacing: -.035em; margin: 18px 0 22px; }
 .page-head h1 em { font-style: italic; color: var(--orange); }
 .page-head .lead { font: 400 19px/1.55 var(--sans); color: var(--ink-2); max-width: 620px; }
+/* One-paragraph answer near the top of category and product pages (quotable in search snippets and AI answers). */
+.tldr { font: 400 17px/1.6 var(--sans); color: var(--ink-2); max-width: 720px; margin: 18px 0 0; padding: 14px 18px; border-left: 3px solid var(--orange); background: var(--paper-2); border-radius: 0 6px 6px 0; }
+.tldr b { color: var(--ink); font-weight: 600; }
+.phead .tldr { margin: 22px 0 4px; }
 .answer { display: grid; grid-template-columns: repeat(3, 1fr); border-top: 1px solid var(--rule-strong); border-bottom: 1px solid var(--rule); }
 .answer a { display: block; padding: 22px 28px 24px 0; text-decoration: none; }
 .answer a + a { padding-left: 28px; border-left: 1px solid var(--rule); }
