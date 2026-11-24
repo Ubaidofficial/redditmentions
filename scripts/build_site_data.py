@@ -215,12 +215,21 @@ def tidy_name(s):
 
 def load_curation(path):
     """Editable rules (scripts/curation.json): products to drop, and product families to merge."""
-    empty = {"exclude": [], "families": [], "rename": []}
+    empty = {"exclude": [], "families": [], "rename": [], "distinct": []}
     if not path or not os.path.exists(path):
         return empty
     with open(path, encoding="utf-8") as f:
         d = json.load(f)
-    return {k: [dict(r, _re=re.compile(r["match"])) for r in d.get(k, [])] for k in empty}
+    out = {k: [dict(r, _re=re.compile(r["match"])) for r in d.get(k, [])] for k in ("exclude", "families", "rename")}
+    # 'distinct': products the duplicate check flags that are really separate models; listed so it stops flagging them.
+    out["distinct"] = [dict(r, _res=[re.compile(m) for m in r["match"]]) for r in d.get("distinct", [])]
+    return out
+
+
+def known_distinct(rules, category, names):
+    """True if one 'distinct' rule covers every name in a group the duplicate check flagged."""
+    normed = [norm(n) for n in names]
+    return any(r["category"] == category and all(any(x.search(n) for x in r["_res"]) for n in normed) for r in rules)
 
 
 def first_rule(rules, category, normed):
@@ -359,6 +368,16 @@ def main():
             if fkey not in kept:
                 kept[fkey] = new_group(fam.get("brand") or g["brand"], fam["name"])
             merge_into(kept[fkey], g)
+            # The member's own address (and its renamed one, if a rename rule covered it) redirects to the family page.
+            olds = kept[fkey].setdefault("old_slugs", [])
+            olds.append(slugify(tidy_name(display_name(g["brand"], g["name"]))))
+            ren = first_rule(cur["rename"], key[0], normed)
+            if ren:
+                olds.append(slugify(tidy_name(display_name(ren.get("brand") or g["brand"], ren["name"]))))
+                olds.extend(ren.get("previous_slugs") or [])
+            for old in fam.get("previous_slugs") or []:
+                if old not in olds:
+                    olds.append(old)
             folded += 1
         else:
             ren = first_rule(cur["rename"], key[0], normed)
@@ -452,7 +471,7 @@ def main():
             if toks[: len(btoks)] == btoks:
                 toks = toks[len(btoks):]
             lines.setdefault((norm(p["brand"]), tuple(toks[:2])), []).append(p["name"])
-        maybe = [v for v in lines.values() if len(v) > 1]
+        maybe = [v for v in lines.values() if len(v) > 1 and not known_distinct(cur["distinct"], c["slug"], v)]
         if maybe:
             print(f"  possible duplicates in {c['name']} (add a rule to scripts/curation.json if they are one product):")
             for v in maybe[:12]:
@@ -487,12 +506,21 @@ def main():
     print(f"photos: {pt['archive'] + pt['asin']} of {pt['products']} ranked products "
           f"({pt['archive']} from the archive, {pt['asin']} from Amazon by product id; the rest show an illustration)")
 
-    # Old addresses of renamed products -> new ones (Cloudflare reads _redirects from the site root).
+    # Old addresses of renamed and merged products -> new ones (Cloudflare reads _redirects from the site root).
+    # Never redirect an address that is a live product page, and write each old address once.
+    live = {(m["slug"], p["slug"]) for m in meta_cats
+            for p in json.load(open(os.path.join(a.out, m["slug"] + ".json"), encoding="utf-8"))["products"]}
+    seen_r, kept_r = set(), []
+    for cat_slug, old, new in redirects:
+        if (cat_slug, old) not in live and (cat_slug, old) not in seen_r:
+            seen_r.add((cat_slug, old))
+            kept_r.append((cat_slug, old, new))
+    redirects = kept_r
     os.makedirs(os.path.dirname(a.redirects), exist_ok=True)
     with open(a.redirects, "w", encoding="utf-8") as f:
         for cat_slug, old, new in redirects:
             f.write(f"/{cat_slug}/{old}/ /{cat_slug}/{new}/ 301\n")
-    print(f"wrote {len(redirects)} redirects for renamed products to {a.redirects}")
+    print(f"wrote {len(redirects)} redirects for renamed and merged products to {a.redirects}")
     if long_names:
         print(f"\n{len(long_names)} product names are over 50 characters. Add a 'rename' rule for the ones that read badly:")
         for cat_slug, name in long_names[:25]:

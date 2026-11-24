@@ -96,6 +96,10 @@ long retailer titles). Each rule is a regular expression tested against the prod
 After a run the builder prints "possible duplicates" it could not merge, so you can add rules for them.
 Entries that combine several products show "Includes N other variants" and list them on their page.
 
+Products merged by a `families` rule also redirect from their old web addresses to the merged page, so links and
+search results keep working. `distinct` lists products the duplicate check flags that are really separate models
+(for example a Pro and a non-Pro version), so the build stops reporting them.
+
 `rename` gives one product a shorter display name. Its old web address then redirects to the new one
 automatically (the builder writes `site/public/_redirects`, which Cloudflare reads), so existing links and
 search results keep working. After a run the builder also lists any product names over 50 characters, so you
