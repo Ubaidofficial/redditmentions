@@ -28,7 +28,7 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: 2364c7ebf95147349936304514f60d1e
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       # Without the real data the site builds from the sample fixture, which is set to noindex. Deploying that would
       # tell search engines to drop every page, so stop instead.
       - name: Require the generated data
@@ -43,7 +43,7 @@ jobs:
             echo "::error::The repository secret CLOUDFLARE_API_TOKEN is not set (Settings > Secrets and variables > Actions)."
             exit 1
           fi
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
