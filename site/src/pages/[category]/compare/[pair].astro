@@ -3,7 +3,7 @@
 import Base from '../../../layouts/Base.astro';
 import Sentiment from '../../../components/Sentiment.astro';
 import BuyButton from '../../../components/BuyButton.astro';
-import { firstFit, joinList, phrase, monthYear, longDate } from '../../../lib/seo';
+import { firstFit, joinList, phrase, monthYear, longDate, searchName, shortVs } from '../../../lib/seo';
 import { isThinProduct, INDEXED_COMPARISONS } from '../../../lib/indexing.mjs';
 import { SITE, AMAZON_TAG } from '../../../config';
 import { categories, getCategory, meta, modifiedOn } from '../../../lib/data';
@@ -48,12 +48,20 @@ const summary =
     : `It is close: the ${A.name} (#${A.rank}, score ${A.score}/100, ${A.share_positive}% positive) and the ${B.name} (#${B.rank}, score ${B.score}/100, ${B.share_positive}% positive) are within 2 points of each other.`) +
   prefLine;
 
+// Search snippet. People search the short form ("garmin instinct 2 vs 3", "liberty 4 nc vs liberty 4 pro"), so the
+// title names the first product in full and the second without the words they share.
+const sA = searchName(A.name);
+const vsName = `${sA} vs ${shortVs(sA, searchName(B.name))}`;
 const title = firstFit(
-  [`${A.name} vs ${B.name}: Which Does Reddit Prefer?`, `${A.name} vs ${B.name}: Reddit Comparison`, `${A.name} vs ${B.name} (Reddit)`, `${A.name} vs ${B.name}`],
+  [`${vsName}: Which Does Reddit Prefer?`, `${vsName}: Reddit Comparison`, `${vsName} (Reddit)`, vsName],
   62,
 );
+const verdict = lead ? `Reddit favours the ${searchName(lead.name)}.` : 'Reddit rates them about the same.';
 const description = firstFit(
   [
+    `${vsName}: ${verdict} ${A.share_positive}% vs ${B.share_positive}% positive, from ${fmt(A.opinions)} and ${fmt(B.opinions)} Redditors; ${fmt(shared)} discussed both.`,
+    `${vsName}: ${verdict} ${A.share_positive}% vs ${B.share_positive}% positive; ${fmt(shared)} Redditors discussed both.`,
+    `${vsName}: ${verdict} ${A.share_positive}% vs ${B.share_positive}% positive on Reddit.`,
     `Reddit on the ${A.name} vs ${B.name}: ${A.share_positive}% positive from ${fmt(A.opinions)} Redditors vs ${B.share_positive}% from ${fmt(B.opinions)}. ${fmt(shared)} Redditors discussed both.`,
     `${A.name} vs ${B.name}: ${A.share_positive}% vs ${B.share_positive}% positive on Reddit. ${fmt(shared)} Redditors discussed both.`,
     `${A.name} vs ${B.name}: what ${fmt(shared)} Redditors who discussed both said.`,

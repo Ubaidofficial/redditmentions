@@ -12,6 +12,13 @@ export const SITE = {
     'AskTheSubs is an independent site. It is not affiliated with, endorsed by, or sponsored by Reddit, Inc.',
 };
 
+// Category names used in search titles and headings where searchers use different words than the category's name.
+// Keyword research (Nov 2026): "best running watches" has about 4x the searches of "best fitness trackers", and most
+// products in that ranking are running watches.
+export const SEARCH_NAMES: Record<string, string> = {
+  'fitness-trackers': 'Fitness Trackers & Running Watches',
+};
+
 // The Amazon Associates tag lives in one place (affiliate-tag.mjs); there is deliberately no environment override, so a stray
 // .env value cannot put a different tag on the site. scripts/check-amazon-links.mjs verifies the built output before every deploy.
 import { AMAZON_TAG as TAG } from '../affiliate-tag.mjs';

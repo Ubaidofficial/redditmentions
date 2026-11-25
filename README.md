@@ -182,6 +182,20 @@ Environment variables (set in `site/.env` or the build environment):
   work, and links to each ranking, its top 10 indexable products and the released comparisons. It is built from the
   same data, so it stays current. Whether a given assistant reads it is not something we can confirm.
 
+## Titles and descriptions
+
+Keyword research (OpenSEO, Nov 2026) and the keywords redditrecs.com ranked for shaped the search titles:
+
+- **Category pages:** `Best <name> According to Reddit (<year>): N Ranked`. `SEARCH_NAMES` in `site/src/config.ts` swaps in
+  the words searchers use where they differ from the category name (fitness trackers -> "Fitness Trackers & Running
+  Watches"). Descriptions name the top picks and the subreddits the opinions come from.
+- **Product pages:** `<name> Reddit Review: N% Positive, N Redditors`. Most searches are the bare product name, so
+  the name comes first, without a trailing " Series" or a bracketed note (`searchName` in `site/src/lib/seo.ts`).
+- **Comparison pages:** `<A> vs <B>: Which Does Reddit Prefer?`, with B shortened the way people search ("Garmin
+  Instinct 2 vs 3", "Soundcore Liberty 4 NC vs Liberty 4 Pro"; `shortVs` in `site/src/lib/seo.ts`). Descriptions state
+  which one Reddit favours.
+- **Home page:** targets "reddit product reviews" and "reddit recommendations".
+
 ## Publishing
 
 On your own machine, from the project root:
