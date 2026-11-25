@@ -7,7 +7,7 @@ import { SITE, NOINDEX, AMAZON_TAG, GTM_ID } from '../config';
 import Logo from '../components/Logo.astro';
 import { usingFixture, meta } from '../lib/data';
 
-const { title, description = SITE.description, cta = false, jsonld = null, ogType = 'website' } = Astro.props;
+const { title, description = SITE.description, cta = false, jsonld = null, ogType = 'website', noindexPage = false } = Astro.props;
 const ogImage = new URL('/og.png', SITE.url).toString();
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
 const noindex = NOINDEX || usingFixture;
@@ -41,7 +41,9 @@ const gtm = !!GTM_ID && !noindex;
     <meta name="theme-color" content="#faf8f4" />
     {noindex
       ? <meta name="robots" content="noindex,nofollow" />
-      : <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1" />}
+      : noindexPage
+        ? <meta name="robots" content="noindex,follow" />
+        : <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1" />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:type" content={ogType} />

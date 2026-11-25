@@ -223,6 +223,20 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       </section>
     )}
 
+    {(cat.comparisons ?? []).length > 0 && (
+      <section class="recent-top" aria-labelledby="cmp-h">
+        <div class="section-head"><h2 id="cmp-h">Most compared {lower} on Reddit</h2><span class="kicker">{cat.comparisons.length} comparisons</span></div>
+        <ol class="threads">
+          {cat.comparisons.slice(0, 6).map((x: any) => (
+            <li>
+              <a href={`/${cat.slug}/compare/${x.slug}/`}>{products.find((q: any) => q.slug === x.a)?.name} vs {products.find((q: any) => q.slug === x.b)?.name}</a>
+              <small class="num">{fmt(x.shared_redditors)} Redditors discussed both · {fmt(x.shared_threads)} shared threads</small>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
     <section class="plot-section">
       <div class="section-head" style="margin-top:56px"><h2 style="font:400 clamp(30px,3.6vw,42px)/1.05 var(--serif);letter-spacing:-.02em">Popularity <em style="color:var(--orange)">vs.</em> approval</h2></div>
       <PopularityPlot products={products} category={cat.slug} />

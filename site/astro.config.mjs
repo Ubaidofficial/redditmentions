@@ -1,5 +1,7 @@
 import { defineConfig } from 'astro/config';
 import sitemap from '@astrojs/sitemap';
+import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { isThinProduct, INDEXED_COMPARISONS } from './src/lib/indexing.mjs';
 
 // Staged indexing: only these URLs go in the sitemap, a few at a time, so each batch can be crawled and indexed
 // before the next is added. To list every page, set SITEMAP_ALLOWLIST to null.
@@ -38,10 +40,28 @@ const SITEMAP_ALLOWLIST = new Set(
   ].map((path) => SITE_URL + path),
 );
 
+// Thin product pages (see src/lib/indexing.mjs) never go in the sitemap, even if listed above or the list is null.
+const THIN = new Set();
+const GEN = new URL('./src/data/generated/', import.meta.url);
+if (existsSync(GEN)) {
+  for (const f of readdirSync(GEN)) {
+    if (!f.endsWith('.json') || f === 'categories.json' || f.endsWith('.comparisons.json')) continue;
+    const cat = JSON.parse(readFileSync(new URL(f, GEN), 'utf8'));
+    for (const p of cat.products ?? []) if (isThinProduct(p)) THIN.add(`${SITE_URL}/${cat.slug}/${p.slug}/`);
+  }
+}
+const inSitemap = (page) => {
+  if (THIN.has(page)) return false;
+  // Comparison pages: only the released ones.
+  const path = page.replace(SITE_URL, '');
+  if (/^\/[^/]+\/compare\//.test(path)) return INDEXED_COMPARISONS.has(path);
+  return SITEMAP_ALLOWLIST === null || SITEMAP_ALLOWLIST.has(page);
+};
+
 // Fully static site: no adapter needed. Cloudflare Workers serves ./dist (see wrangler.jsonc).
 export default defineConfig({
   site: SITE_URL,
   output: 'static',
   trailingSlash: 'always',
-  integrations: [sitemap({ filter: (page) => SITEMAP_ALLOWLIST === null || SITEMAP_ALLOWLIST.has(page) })],
+  integrations: [sitemap({ filter: inSitemap })],
 });
