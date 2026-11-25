@@ -51,8 +51,10 @@ const title = firstFit(
 const named = catNames.length > 4 ? [...catNames.slice(0, 4), 'more'] : catNames;
 const description = firstFit(
   [
-    `Reddit product reviews and recommendations for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. Every quote links to its source.`,
-    `Reddit product recommendations for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. Every quote links to its source.`,
+    // Always lead with the searched phrase; name fewer categories before dropping the trust line.
+    ...[4, 3, 2].map((k) =>
+      `Reddit product reviews and recommendations for ${joinList(catNames.length > k ? [...catNames.slice(0, k), 'more'] : catNames)}, from ${fmt(stats.opinions)} Redditors. Every quote links to its source.`),
+    `Reddit product reviews and recommendations for ${joinList(named)}, from ${fmt(stats.opinions)} Redditors.`,
     `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. One vote per person; every quote links to its source.`,
     `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions, with every quote linked to its source.`,
     `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. Every quote links to its source.`,
