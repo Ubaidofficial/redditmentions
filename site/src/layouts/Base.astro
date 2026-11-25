@@ -5,12 +5,66 @@ import '@fontsource-variable/instrument-sans/wght.css';
 import '../styles/global.css';
 import { SITE, NOINDEX, AMAZON_TAG, GTM_ID } from '../config';
 import Logo from '../components/Logo.astro';
-import { usingFixture, meta } from '../lib/data';
+import { usingFixture, meta, modifiedOn } from '../lib/data';
 
-const { title, description = SITE.description, cta = false, jsonld = null, ogType = 'website', noindexPage = false } = Astro.props;
+const {
+  title,
+  description = SITE.description,
+  cta = false,
+  jsonld = null,
+  ogType = 'website',
+  noindexPage = false,
+  // schema.org type of this page: WebPage, CollectionPage (rankings), AboutPage, ContactPage...
+  pageType = 'WebPage',
+} = Astro.props;
 const ogImage = new URL('/og.png', SITE.url).toString();
 const canonical = new URL(Astro.url.pathname, SITE.url).toString();
 const noindex = NOINDEX || usingFixture;
+// The day this page's content last changed (from the data build); also goes in the sitemap as <lastmod>.
+const modified = modifiedOn(Astro.url.pathname);
+
+// One connected graph on every page: who publishes the site, the site itself, and this page (with its
+// date), so search engines and AI assistants can tie each page to the publisher. Pages add their own
+// nodes (FAQ, breadcrumbs, item lists) through the jsonld prop.
+const abs = (path: string) => new URL(path, SITE.url).toString();
+const graph = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': abs('/#organization'),
+      name: SITE.name,
+      url: abs('/'),
+      logo: { '@type': 'ImageObject', url: abs('/favicon.svg') },
+      image: ogImage,
+      email: SITE.email,
+      description: SITE.description,
+      contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: SITE.email, availableLanguage: 'en', url: abs('/contact/') },
+    },
+    {
+      '@type': 'WebSite',
+      '@id': abs('/#website'),
+      url: abs('/'),
+      name: SITE.name,
+      description: SITE.description,
+      inLanguage: 'en',
+      publisher: { '@id': abs('/#organization') },
+    },
+    {
+      '@type': pageType,
+      '@id': canonical + '#webpage',
+      url: canonical,
+      name: title,
+      description,
+      inLanguage: 'en',
+      isPartOf: { '@id': abs('/#website') },
+      publisher: { '@id': abs('/#organization') },
+      primaryImageOfPage: { '@type': 'ImageObject', url: ogImage },
+      ...(modified ? { dateModified: modified } : {}),
+    },
+  ],
+};
+const extra = jsonld ? (Array.isArray(jsonld) ? jsonld : [jsonld]) : [];
 // Tag Manager only on the real site: not on previews, staging or sample-data builds.
 const gtm = !!GTM_ID && !noindex;
 ---
@@ -58,7 +112,9 @@ const gtm = !!GTM_ID && !noindex;
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={ogImage} />
-    {jsonld && <script type="application/ld+json" set:html={JSON.stringify(jsonld)} />}
+    {modified && <meta property="og:updated_time" content={modified} />}
+    <script type="application/ld+json" set:html={JSON.stringify(graph)} />
+    {extra.map((node: any) => <script type="application/ld+json" set:html={JSON.stringify(node)} />)}
   </head>
   <body class={cta ? 'has-cta' : ''}>
     <a class="skip" href="#main">Skip to content</a>

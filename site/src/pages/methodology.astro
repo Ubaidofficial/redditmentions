@@ -2,8 +2,18 @@
 import Base from '../layouts/Base.astro';
 import { SITE, AMAZON_TAG } from '../config';
 import { meta } from '../lib/data';
+
+const abs = (path: string) => new URL(path, SITE.url).toString();
+const jsonld = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
+    { '@type': 'ListItem', position: 2, name: 'Method', item: abs('/methodology/') },
+  ],
+};
 ---
-<Base title={`How ${SITE.name} Ranks Products From Reddit Comments`} description="How AskTheSubs turns public Reddit comments into product rankings: where the data comes from, how the Wilson score works, and what the rankings cannot tell you.">
+<Base title={`How ${SITE.name} Ranks Products From Reddit Comments`} description="How AskTheSubs turns public Reddit comments into product rankings: where the data comes from, how the Wilson score works, and what the rankings cannot tell you." jsonld={jsonld}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; Method</p>
     <div class="prose">

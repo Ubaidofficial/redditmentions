@@ -5,9 +5,9 @@ import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
-import { firstFit, joinList, phrase, monthYear } from '../../lib/seo';
+import { firstFit, joinList, phrase, monthYear, longDate } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
-import { categories, getCategory, meta } from '../../lib/data';
+import { categories, getCategory, meta, modifiedOn } from '../../lib/data';
 import { isThinProduct } from '../../lib/indexing.mjs';
 
 export function getStaticPaths() {
@@ -41,6 +41,7 @@ const quotes = [
 const fmt = (n: number) => n.toLocaleString('en-US');
 const abs = (path: string) => new URL(path, SITE.url).toString();
 const lower = cat.name.toLowerCase();
+const updated = modifiedOn(`/${cat.slug}/${p.slug}/`);
 const like = p.likes[0] ? phrase(p.likes[0].title) : null;
 const dislike = p.dislikes[0] ? phrase(p.dislikes[0].title) : null;
 const likesText = p.likes.slice(0, 3).map((l: any) => phrase(l.title));
@@ -143,8 +144,11 @@ const jsonld = [
       <div class="phead-top">
         <div>
           <span class="kicker">No. {p.rank} of {cat.products.length} · {cat.name}</span>
-          {p.first_date && p.last_date && (
-            <p class="fresh num">Reddit comments from {monthYear(p.first_date)} to {monthYear(p.last_date)} · data through {meta.comments_through}</p>
+          {(updated || (p.first_date && p.last_date)) && (
+            <p class="fresh num">
+              {updated && <>Updated <time datetime={updated}>{longDate(updated)}</time>{p.first_date && p.last_date ? ' · ' : ''}</>}
+              {p.first_date && p.last_date && <>Reddit comments from {monthYear(p.first_date)} to {monthYear(p.last_date)} · data through {meta.comments_through}</>}
+            </p>
           )}
           <h1>{p.name}</h1>
         </div>

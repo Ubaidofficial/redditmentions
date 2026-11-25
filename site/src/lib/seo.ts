@@ -37,3 +37,10 @@ export function monthYear(date: string): string {
   if (!m) return String(date || '');
   return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m[2]) - 1]} ${m[1]}`;
 }
+
+/** "25 Nov 2026" from "2026-11-25". */
+export function longDate(date: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(date || ''));
+  if (!m) return String(date || '');
+  return `${Number(m[3])} ${monthYear(date)}`;
+}

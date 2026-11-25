@@ -3,10 +3,10 @@
 import Base from '../../../layouts/Base.astro';
 import Sentiment from '../../../components/Sentiment.astro';
 import BuyButton from '../../../components/BuyButton.astro';
-import { firstFit, joinList, phrase, monthYear } from '../../../lib/seo';
+import { firstFit, joinList, phrase, monthYear, longDate } from '../../../lib/seo';
 import { isThinProduct, INDEXED_COMPARISONS } from '../../../lib/indexing.mjs';
 import { SITE, AMAZON_TAG } from '../../../config';
-import { categories, getCategory, meta } from '../../../lib/data';
+import { categories, getCategory, meta, modifiedOn } from '../../../lib/data';
 
 export function getStaticPaths() {
   return categories.flatMap((c: any) =>
@@ -23,6 +23,7 @@ const B = bySlug(cmp.b);
 const fmt = (n: number) => n.toLocaleString('en-US');
 const lower = cat.name.toLowerCase();
 const path = `/${cat.slug}/compare/${cmp.slug}/`;
+const updated = modifiedOn(path);
 const abs = (p: string) => new URL(p, SITE.url).toString();
 const pct = (n: number, d: number) => (d ? Math.round((100 * n) / d) : 0);
 
@@ -133,7 +134,7 @@ const noindexPage = !INDEXED_COMPARISONS.has(path) || isThinProduct(A) || isThin
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {A.name} vs {B.name}</p>
     <header class="page-head">
       <span class="kicker">Comparison · {cat.name}</span>
-      <p class="fresh num">{fmt(shared)} Redditors discussed both, in {fmt(cmp.shared_threads)} shared threads · data through {meta.comments_through}</p>
+      <p class="fresh num">{updated && <>Updated <time datetime={updated}>{longDate(updated)}</time> · </>}{fmt(shared)} Redditors discussed both, in {fmt(cmp.shared_threads)} shared threads · data through {meta.comments_through}</p>
       <h1>{A.name} vs {B.name} <em>according to Reddit</em></h1>
       <p class="tldr"><b>Short answer:</b> {summary}</p>
     </header>

@@ -34,8 +34,11 @@ What it does to the raw archive data:
     asks again. The build prints how many photos came from where.
   * stores the Amazon product id (ASIN) only, never the old affiliate tag; the link goes to the
     most-discussed variant that has an Amazon listing
+  * records the day each page's content last changed (page_dates.json), for the sitemap's <lastmod>, the
+    "Updated" line and dateModified in structured data. A page's date moves only when the data it shows
+    changes, so rebuilding unchanged data keeps the old dates. History is kept in <data>/page_dates.json.
 """
-import argparse, csv, json, math, os, re, sys, unicodedata, urllib.request
+import argparse, csv, datetime, hashlib, json, math, os, re, sys, unicodedata, urllib.request
 from collections import Counter, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 
@@ -474,6 +477,73 @@ def merge_into(t, g):
         t["img"], t["img_n"] = g["img"], g["img_n"]
 
 
+def _fingerprint(obj):
+    return hashlib.sha256(json.dumps(obj, sort_keys=True, ensure_ascii=False).encode("utf-8")).hexdigest()[:16]
+
+
+def update_page_dates(out, data_dir, today=None):
+    """Give every data-driven page the day its content last changed.
+
+    Each page gets a fingerprint of the data it displays. If the fingerprint matches the one stored in
+    <data_dir>/page_dates.json, the stored date is kept; otherwise the page gets today's date. Writes the
+    history back and writes <out>/page_dates.json ({path: "YYYY-MM-DD"}) for the site. Template changes are
+    not detected: only changes to the data. On the first run every page gets today's date, because there is
+    no earlier record to go by.
+    """
+    today = today or datetime.date.today().isoformat()
+    meta = json.load(open(os.path.join(out, "categories.json"), encoding="utf-8"))
+    shown = ("rank", "slug", "name", "score", "opinions", "share_positive")
+    pages = {
+        "/": {"stats": meta.get("stats"), "through": meta.get("comments_through"),
+              "categories": [{k: c.get(k) for k in ("slug", "name", "products", "opinions", "top_pick")}
+                             for c in meta["categories"]]},
+        "/about/": {"stats": meta.get("stats"), "categories": [c["name"] for c in meta["categories"]],
+                    "through": meta.get("comments_through")},
+        "/methodology/": {"through": meta.get("comments_through"), "min": meta.get("min_opinions")},
+    }
+    for c in meta["categories"]:
+        cat = json.load(open(os.path.join(out, c["slug"] + ".json"), encoding="utf-8"))
+        prods = {p["slug"]: p for p in cat["products"]}
+        cmps = cat.get("comparisons") or []
+        pages[f"/{cat['slug']}/"] = {
+            "through": meta.get("comments_through"), "discussions": cat.get("discussions"),
+            "products": [{k: p.get(k) for k in shown + ("positive", "neutral", "negative", "brand", "recent", "last_date")}
+                         for p in cat["products"]],
+            "comparisons": [x.get("slug") for x in cmps],
+        }
+        for p in cat["products"]:
+            pages[f"/{cat['slug']}/{p['slug']}/"] = {
+                "product": {k: v for k, v in p.items() if k != "image"},
+                "comparisons": [x for x in cmps if p["slug"] in (x.get("a"), x.get("b"))],
+                "of": len(cat["products"]),
+            }
+        for x in cmps:
+            pair = [{k: v for k, v in prods[s].items() if k != "image"} for s in (x["a"], x["b"]) if s in prods]
+            pages[f"/{cat['slug']}/compare/{x['slug']}/"] = {"comparison": x, "products": pair}
+
+    hist_path = os.path.join(data_dir, "page_dates.json")
+    try:
+        history = json.load(open(hist_path, encoding="utf-8"))
+    except (OSError, ValueError):
+        history = {}
+    dates, changed = {}, 0
+    for path, data in pages.items():
+        fp = _fingerprint(data)
+        old = history.get(path)
+        if old and old.get("hash") == fp:
+            dates[path] = old["date"]
+        else:
+            dates[path] = today
+            changed += 1
+            history[path] = {"hash": fp, "date": today}
+    os.makedirs(data_dir, exist_ok=True)
+    with open(hist_path, "w", encoding="utf-8") as f:
+        json.dump(history, f, indent=0, sort_keys=True)
+    with open(os.path.join(out, "page_dates.json"), "w", encoding="utf-8") as f:
+        json.dump(dates, f, indent=0, sort_keys=True)
+    print(f"page dates: {changed} of {len(pages)} pages changed and dated {today}; the rest keep their earlier date")
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--data", default="output", help="folder with the CSVs from extract.py")
@@ -729,6 +799,7 @@ def main():
                              "opinions": sum(m["opinions"] for m in meta_cats), "subreddits": len(all_subs)},
                    "categories": meta_cats}, f, ensure_ascii=False, indent=1)
     print(f"wrote {len(meta_cats)} categories to {a.out}")
+    update_page_dates(a.out, a.data)
     if not a.no_asin_photos:
         os.makedirs(a.data, exist_ok=True)
         with open(photo_cache_path, "w", encoding="utf-8") as f:

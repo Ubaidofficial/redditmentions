@@ -50,27 +50,8 @@ const description = firstFit(
   160,
 );
 const abs = (path: string) => new URL(path, SITE.url).toString();
+// Organization, WebSite and WebPage come from the layout (Base.astro) on every page.
 const jsonld = [
-  {
-    '@context': 'https://schema.org',
-    '@type': 'WebSite',
-    '@id': abs('/#website'),
-    url: abs('/'),
-    name: SITE.name,
-    description: SITE.description,
-    inLanguage: 'en',
-    publisher: { '@id': abs('/#organization') },
-  },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': abs('/#organization'),
-    name: SITE.name,
-    url: abs('/'),
-    logo: abs('/favicon.svg'),
-    email: SITE.email,
-    description: SITE.description,
-  },
   {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
