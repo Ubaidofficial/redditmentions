@@ -20,3 +20,13 @@ export const categories: any[] = meta.categories;
 export function getCategory(slug: string): any {
   return load(slug);
 }
+
+// The day each page's content last changed ({ "/robot-vacuums/": "2026-11-25", ... }), written by
+// scripts/build_site_data.py. Missing for the sample fixture and for older data builds: pages then show no date.
+const datesKey = Object.keys(files).find((k) => k.endsWith('/page_dates.json'));
+export const pageDates: Record<string, string> = datesKey ? files[datesKey] : {};
+
+/** "YYYY-MM-DD" the page at this path last changed, or null if unknown. */
+export function modifiedOn(path: string): string | null {
+  return pageDates[path] ?? null;
+}

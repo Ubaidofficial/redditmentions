@@ -33,6 +33,45 @@ const SITEMAP_ALLOWLIST = new Set(
     '/fitness-trackers/garmin-fenix-7-series/', // most discussed fitness tracker (1,043 Redditors)
     '/ultrawide-monitors/lg-45gx950a-b/', // most discussed ultrawide (1,036 Redditors)
     '/wireless-earbuds/earfun-air-pro-4/', // "earfun" already gets impressions; 309 Redditors
+    // Batch 4 (2026-11-25): batches 2-3 were indexed within days, while Search Console's URL inspection reported 80
+    // other product pages as "unknown to Google". Ranks 2-5 in every category, the most-discussed products not yet
+    // listed, the second product of each released comparison, and products matching searches in Search Console.
+    '/baby-strollers/bumbleride-indie/', // #2
+    '/baby-strollers/guava-family-roam-crossover-stroller/', // #3
+    '/baby-strollers/bumbleride-indie-twin/', // #5
+    '/baby-strollers/bob-gear-revolution/', // 496 Redditors
+    '/baby-strollers/bugaboo-butterfly-series/', // 461 Redditors; in a released comparison
+    '/baby-strollers/thule-urban-glide/', // 349 Redditors
+    '/fitness-trackers/garmin-forerunner-955/', // #2; in a released comparison
+    '/fitness-trackers/amazfit-bip-6/', // #3
+    '/fitness-trackers/garmin-instinct-3/', // #4; in a released comparison
+    '/fitness-trackers/garmin-instinct-2/', // #5; in a released comparison
+    '/fitness-trackers/garmin-forerunner-965/', // 568 Redditors
+    '/robot-vacuums/roborock-qrevo-s/', // #2
+    '/robot-vacuums/roborock-q5/', // #3
+    '/robot-vacuums/roborock-qx-revo/', // #4
+    '/robot-vacuums/roborock-qrevo-curv-series/', // #5
+    '/robot-vacuums/roborock-s8/', // 422 Redditors
+    '/robot-vacuums/dreame-l40/', // 354 Redditors; in a released comparison
+    '/ultrawide-monitors/dell-ultrasharp-40-u4025qw/', // #3
+    '/ultrawide-monitors/lg-39gx950b/', // #4
+    '/ultrawide-monitors/lg-45gr75dc-b/', // #5
+    '/ultrawide-monitors/samsung-odyssey-oled-g9/', // 691 Redditors
+    '/ultrawide-monitors/samsung-odyssey-neo-g9-g95nc/', // 635 Redditors
+    '/vacuum-cleaners/sebo-d-professional/', // #2
+    '/vacuum-cleaners/sebo-airbelt-k/', // #3
+    '/vacuum-cleaners/sebo-felix/', // #4
+    '/vacuum-cleaners/sebo-automatic-x/', // #5
+    '/vacuum-cleaners/miele-compact-c2/', // 866 Redditors
+    '/vacuum-cleaners/miele-guard/', // 806 Redditors
+    '/vacuum-cleaners/numatic-international-henry-canister-series/', // 685 Redditors
+    '/vacuum-cleaners/kenmore-400-series/', // shown in Search for "kenmore 400 series"
+    '/wireless-earbuds/anker-soundcore-v20i/', // #2
+    '/wireless-earbuds/noble-audio-fokus-rex5/', // #3
+    '/wireless-earbuds/oneplus-buds-4/', // #6; searched as "oneplus buds pro 4 reddit"
+    '/wireless-earbuds/anker-soundcore-liberty-4-pro/', // in a released comparison
+    '/wireless-earbuds/anker-soundcore-aeroclip/', // searched as "soundcore aeroclip 2", "freeclip 2 vs aeroclip 2"
+    '/wireless-earbuds/anker-soundcore-liberty-5/', // searched as "soundcore liberty 5 pro"
     // Trust pages: who runs the site, how it makes money, how to reach it, how rankings are made.
     '/about/',
     '/contact/',
@@ -45,11 +84,20 @@ const THIN = new Set();
 const GEN = new URL('./src/data/generated/', import.meta.url);
 if (existsSync(GEN)) {
   for (const f of readdirSync(GEN)) {
-    if (!f.endsWith('.json') || f === 'categories.json' || f.endsWith('.comparisons.json')) continue;
+    if (!f.endsWith('.json') || f === 'categories.json' || f === 'page_dates.json' || f.endsWith('.comparisons.json')) continue;
     const cat = JSON.parse(readFileSync(new URL(f, GEN), 'utf8'));
     for (const p of cat.products ?? []) if (isThinProduct(p)) THIN.add(`${SITE_URL}/${cat.slug}/${p.slug}/`);
   }
 }
+// The day each page's content last changed (scripts/build_site_data.py), used as the sitemap's <lastmod>.
+// Pages with no recorded date get no <lastmod> rather than the build date, which search engines learn to ignore.
+const DATES_FILE = new URL('page_dates.json', GEN);
+const PAGE_DATES = existsSync(DATES_FILE) ? JSON.parse(readFileSync(DATES_FILE, 'utf8')) : {};
+const withLastmod = (item) => {
+  const date = PAGE_DATES[new URL(item.url).pathname];
+  return date ? { ...item, lastmod: date } : item;
+};
+
 const inSitemap = (page) => {
   if (THIN.has(page)) return false;
   // Comparison pages: only the released ones.
@@ -63,5 +111,5 @@ export default defineConfig({
   site: SITE_URL,
   output: 'static',
   trailingSlash: 'always',
-  integrations: [sitemap({ filter: inSitemap })],
+  integrations: [sitemap({ filter: inSitemap, serialize: withLastmod })],
 });

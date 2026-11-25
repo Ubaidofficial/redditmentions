@@ -165,6 +165,23 @@ Environment variables (set in `site/.env` or the build environment):
   product keeps its 6 strongest pairs (`build_comparisons` in `scripts/build_site_data.py`). They are `noindex` until
   their path is added to `INDEXED_COMPARISONS`, which also puts them in the sitemap, so they can be released in batches.
 
+## Page dates, structured data and llms.txt
+
+- **Page dates.** `build_site_data.py` fingerprints the data each page shows and records the day it last changed in
+  `output/page_dates.json` (history, on your machine) and `site/src/data/generated/page_dates.json` (for the site). A page's
+  date moves only when its data changes, so rebuilding unchanged data keeps the old dates. That date is used for the
+  sitemap's `<lastmod>`, the "Updated" line on ranking, product and comparison pages, and `dateModified` in structured
+  data. Search engines ignore `<lastmod>` when it is just the build date, which is why it is not used. Template-only
+  changes do not move the dates. Pages with no recorded date (for example `/contact/`) get no `<lastmod>`.
+- **Structured data.** `site/src/layouts/Base.astro` puts one connected graph on every page (Organization, WebSite and the
+  page itself with its date). Pages add their own FAQ, breadcrumb and item-list nodes through the `jsonld` prop and set
+  `pageType` (`CollectionPage` for rankings, `AboutPage`, `ContactPage`). There is deliberately no `Product` /
+  `AggregateRating` markup: Google's review-snippet rules require ratings collected from users on your own site, and
+  these scores come from Reddit.
+- **`/llms.txt`** (`site/src/pages/llms.txt.ts`) is a plain-text guide for AI assistants: what the site is, how rankings
+  work, and links to each ranking, its top 10 indexable products and the released comparisons. It is built from the
+  same data, so it stays current. Whether a given assistant reads it is not something we can confirm.
+
 ## Publishing
 
 On your own machine, from the project root:

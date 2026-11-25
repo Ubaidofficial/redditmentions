@@ -6,9 +6,9 @@ import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
 import CategoryCard from '../../components/CategoryCard.astro';
 import { evidence } from '../../lib/format';
-import { firstFit, joinList, dataYear, monthYear } from '../../lib/seo';
+import { firstFit, joinList, dataYear, monthYear, longDate } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
-import { categories, getCategory, meta } from '../../lib/data';
+import { categories, getCategory, meta, modifiedOn } from '../../lib/data';
 
 export function getStaticPaths() {
   return categories.map((c: any) => ({ params: { category: c.slug } }));
@@ -50,6 +50,7 @@ const idx = categories.findIndex((c: any) => c.slug === cat.slug);
 const others = [...categories.slice(idx + 1), ...categories.slice(0, idx)].slice(0, 6);
 
 const lower = cat.name.toLowerCase();
+const updated = modifiedOn(`/${cat.slug}/`);
 const year = dataYear(meta.comments_through);
 // Freshness: what Reddit discussed most in the last 12 months of data, and the newest comment counted.
 const lastDate = products.map((p: any) => p.last_date).filter(Boolean).sort().pop() ?? null;
@@ -149,7 +150,7 @@ const disc = cat.discussions && cat.discussions.top?.length ? cat.discussions : 
 const topQuote = (p: any) => p.quotes?.find((q: any) => q.sentiment === 'positive') ?? p.quotes?.[0] ?? null;
 const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort() as string[];
 ---
-<Base title={title} description={description} jsonld={jsonld}>
+<Base title={title} description={description} jsonld={jsonld} pageType="CollectionPage">
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; {cat.name}</p>
     <header class="page-head">
@@ -161,7 +162,12 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
         all{disc ? <> across {fmt(disc.total)} Reddit threads</> : ''}. Rankings weigh approval against how many people were
         counted, so a few enthusiasts cannot carry a product to the top.
       </p>
-      {lastDate && <p class="fresh num">Newest comment counted: {lastDate} · rankings use comments through {meta.comments_through}</p>}
+      {(lastDate || updated) && (
+        <p class="fresh num">
+          {updated && <>Updated <time datetime={updated}>{longDate(updated)}</time>{lastDate ? ' · ' : ''}</>}
+          {lastDate && <>Newest comment counted: {lastDate} · rankings use comments through {meta.comments_through}</>}
+        </p>
+      )}
       <p class="tldr"><b>Short answer:</b> {summary}</p>
     </header>
 

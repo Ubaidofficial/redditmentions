@@ -1,4 +1,44 @@
+# Search engines and AI search/assistant crawlers (Googlebot, Bingbot, OAI-SearchBot, ChatGPT-User,
+# Claude-SearchBot, Claude-User, PerplexityBot, Perplexity-User, YouBot, Applebot, DuckAssistBot...) are welcome.
+# Content may be used for search results and for AI answers that cite it, but not for training AI models.
 User-agent: *
+Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
+
+# AI training crawlers: asked to stay out. This list mirrors the one Cloudflare's managed robots.txt used, so the
+# Cloudflare "Training" setting can be turned off (it also hard-blocked PerplexityBot and YouBot) without losing it.
+User-agent: Amazonbot
+User-agent: Applebot-Extended
+User-agent: Bytespider
+User-agent: CCBot
+User-agent: ClaudeBot
+User-agent: Diffbot
+User-agent: Google-Extended
+User-agent: GPTBot
+User-agent: omgili
+User-agent: anthropic-ai
+User-agent: Claude-Web
+User-agent: cohere-ai
+User-agent: MistralAI-Training
+User-agent: meta-externalagent
+User-agent: GoogleOther
+User-agent: Baiduspider
+User-agent: PetalBot
+User-agent: AwarioSmartBot
+User-agent: AwarioRssBot
+User-agent: Google-CloudVertexBot
+User-agent: QualifiedBot
+User-agent: Cotoyogi
+User-agent: ICC-Crawler
+User-agent: atlassian-bot
+User-agent: FishBot
+User-agent: BorderxBot
+User-agent: NavuBot
+User-agent: SemrushBot-SWA
+User-agent: WARDBot
+User-agent: magpie-crawler
+User-agent: KimiBot
+User-agent: CitibotSiteCrawler
+Disallow: /
 
 Sitemap: https://askthesubs.com/sitemap-index.xml

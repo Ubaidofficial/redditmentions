@@ -3,23 +3,8 @@ import Base from '../layouts/Base.astro';
 import { SITE } from '../config';
 
 const abs = (path: string) => new URL(path, SITE.url).toString();
+// The layout adds the Organization (with its contact point) and this page as a ContactPage (pageType below).
 const jsonld = [
-  {
-    '@context': 'https://schema.org',
-    '@type': 'ContactPage',
-    url: abs('/contact/'),
-    name: `Contact ${SITE.name}`,
-    about: { '@id': abs('/#organization') },
-  },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': abs('/#organization'),
-    name: SITE.name,
-    url: abs('/'),
-    email: SITE.email,
-    contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: SITE.email, availableLanguage: 'en' },
-  },
   {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -34,6 +19,7 @@ const jsonld = [
   title={`Contact ${SITE.name}`}
   description={`How to reach ${SITE.name}: report a ranking error, ask for a quote of yours to be removed, or suggest a product or category.`}
   jsonld={jsonld}
+  pageType="ContactPage"
 >
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; Contact</p>

@@ -6,23 +6,8 @@ import { meta, categories } from '../lib/data';
 const fmt = (n: number) => n.toLocaleString('en-US');
 const stats = meta.stats ?? null;
 const abs = (path: string) => new URL(path, SITE.url).toString();
+// The layout adds the Organization and this page as an AboutPage (pageType below).
 const jsonld = [
-  {
-    '@context': 'https://schema.org',
-    '@type': 'AboutPage',
-    url: abs('/about/'),
-    name: `About ${SITE.name}`,
-    about: { '@id': abs('/#organization') },
-  },
-  {
-    '@context': 'https://schema.org',
-    '@type': 'Organization',
-    '@id': abs('/#organization'),
-    name: SITE.name,
-    url: abs('/'),
-    email: SITE.email,
-    description: SITE.description,
-  },
   {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -35,8 +20,9 @@ const jsonld = [
 ---
 <Base
   title={`About ${SITE.name}: Independent Product Rankings From Reddit`}
-  description={`${SITE.name} is an independent project that ranks products by what Reddit communities say about them, with every quote linked to its source. Who we are, how we make money and how to reach us.`}
+  description={`${SITE.name} is an independent project ranking products by what Reddit communities say, with every quote linked to its source. Who runs it and how it makes money.`}
   jsonld={jsonld}
+  pageType="AboutPage"
 >
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; About</p>
