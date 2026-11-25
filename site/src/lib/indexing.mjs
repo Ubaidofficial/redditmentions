@@ -14,4 +14,12 @@ export function isThinProduct(p) {
 // Comparison pages ("X vs Y") are released in batches like the rest of the site: only the pairs listed here are
 // indexable and go in the sitemap; every other comparison page is built with "noindex, follow".
 // Paths look like '/robot-vacuums/compare/dreame-l40-vs-roborock-s8/'.
-export const INDEXED_COMPARISONS = new Set([]);
+export const INDEXED_COMPARISONS = new Set([
+  // Batch 1 (2026-11-25): pairs with at least one indexed product, real head-to-head evidence and under 70% shared
+  // Redditors (see MAX_SHARED_SHARE in scripts/build_site_data.py).
+  '/fitness-trackers/compare/garmin-forerunner-255-vs-garmin-forerunner-955/', // 243 Redditors discussed both
+  '/fitness-trackers/compare/garmin-instinct-2-vs-garmin-instinct-3/', // 228
+  '/wireless-earbuds/compare/anker-soundcore-liberty-4-nc-vs-anker-soundcore-liberty-4-pro/', // 122
+  '/baby-strollers/compare/bugaboo-butterfly-series-vs-joolz-aer/', // 63
+  '/robot-vacuums/compare/dreame-l40-vs-mova-p10-pro-ultra/', // 34
+]);
