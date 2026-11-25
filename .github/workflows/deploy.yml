@@ -1,0 +1,54 @@
+# Deploys askthesubs.com on every push to main (including merged pull requests), and on demand from the Actions tab.
+# Needs the repository secret CLOUDFLARE_API_TOKEN (a Cloudflare API token with "Edit Cloudflare Workers" permission).
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+# One deploy at a time; a newer push waits for the running deploy instead of cancelling it halfway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: site
+    env:
+      # Same settings as the site that was live when this workflow was added.
+      PUBLIC_PRODUCT_IMAGES: 'true'
+      PUBLIC_NOINDEX: 'false'
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: 2364c7ebf95147349936304514f60d1e
+    steps:
+      - uses: actions/checkout@v4
+      # Without the real data the site builds from the sample fixture, which is set to noindex. Deploying that would
+      # tell search engines to drop every page, so stop instead.
+      - name: Require the generated data
+        run: |
+          if [ ! -f src/data/generated/categories.json ]; then
+            echo "::error::site/src/data/generated/ is missing. Run scripts/build_site_data.py on your machine and commit the result."
+            exit 1
+          fi
+      - name: Require the Cloudflare token
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
+            echo "::error::The repository secret CLOUDFLARE_API_TOKEN is not set (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+      - run: npm ci
+      # Builds, checks every Amazon link for the Associates tag, then deploys with wrangler (see package.json).
+      - name: Build, check and deploy
+        run: npm run deploy

@@ -120,7 +120,7 @@ python3 scripts/build_site_data.py
 
 This merges duplicate products, recomputes sentiment from the opinion rows (one vote per Redditor),
 ranks by a confidence score, keeps a few short quotes with links to the original comments and writes
-`site/src/data/generated/`. That folder is gitignored, so the data stays on your machine.
+`site/src/data/generated/`. That folder is committed so GitHub Actions can build the real site (see Publishing); rebuild it with `./scripts/update-data.sh`.
 Without it the site builds from a clearly marked sample fixture and is set to `noindex`.
 
 ```bash
@@ -198,19 +198,27 @@ Keyword research (OpenSEO, Nov 2026) and the keywords redditrecs.com ranked for 
 
 ## Publishing
 
-On your own machine, from the project root:
+Publishing is automatic (GitHub Actions, `.github/workflows/`):
+
+- **Every pull request** builds the site and checks every Amazon link (`CI` workflow, check name `build`). Pull
+  requests opened by Claude merge themselves once that check passes (auto-merge).
+- **Every push to `main`**, including a merged pull request, builds and deploys the site to Cloudflare (`Deploy`
+  workflow). It refuses to deploy without the real data, because the sample-data build is set to noindex.
+
+The generated data (`site/src/data/generated/`) and `site/public/_redirects` are committed to the repository, so the
+workflows can build the real site. They only change when you rebuild them on your Mac, after editing
+`scripts/curation.json` or the CSVs:
 
 ```bash
-./scripts/publish.sh
+./scripts/update-data.sh
 ```
 
-It pulls the latest code, rebuilds the data, installs dependencies and deploys. Put your preview flags
-in `site/.env` (gitignored) so they are used on every deploy:
+It rebuilds the data, commits it to `main` and pushes; the push deploys the site. The page-date history stays in
+`output/page_dates.json` on your Mac, so always rebuild there.
 
-```
-PUBLIC_NOINDEX=true
-PUBLIC_PRODUCT_IMAGES=true
-```
+Settings the deploy uses: `PUBLIC_PRODUCT_IMAGES=true` and `PUBLIC_NOINDEX=false`, set in `.github/workflows/deploy.yml`
+(edit them there; `site/.env` only affects builds on your Mac). The workflow needs the repository secret
+`CLOUDFLARE_API_TOKEN`.
 
-To go live, set `PUBLIC_NOINDEX=false` (or delete the line) and publish again. First time only:
+`./scripts/publish.sh` still deploys straight from your Mac if GitHub Actions is ever unavailable. First time only:
 `cd site && npx wrangler login`.
