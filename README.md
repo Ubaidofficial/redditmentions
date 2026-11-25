@@ -159,7 +159,9 @@ Environment variables (set in `site/.env` or the build environment):
 - **Thin product pages** (fewer than 40 Redditors, or fewer than 3 usable quotes) are built and linked but carry
   `noindex, follow` and never go in the sitemap. Change the thresholds there.
 - **Comparison pages** (`/<category>/compare/<a>-vs-<b>/`) are built only for pairs Reddit actually compares: at least
-  5 Redditors and 3 threads in common, and either a quote that names both products or 15+ shared Redditors. Each
+  5 Redditors and 3 threads in common, and either a quote that names both products or 15+ shared Redditors, but
+  not pairs where 70% or more of the smaller product's Redditors are shared (the archive cannot tell those apart; the
+  build lists them so you can merge true duplicates). Each
   product keeps its 6 strongest pairs (`build_comparisons` in `scripts/build_site_data.py`). They are `noindex` until
   their path is added to `INDEXED_COMPARISONS`, which also puts them in the sitemap, so they can be released in batches.
 

@@ -294,14 +294,33 @@ def product_extras(g, through, terms):
 MIN_SHARED_REDDITORS = 5
 MIN_SHARED_THREADS = 3
 MAX_COMPARISONS_PER_PRODUCT = 6
+# If most of one product's Redditors are also counted for the other, the archive's opinions cannot tell the two apart
+# (typically brand-wide comments attached to every model), so a head-to-head would be meaningless.
+MAX_SHARED_SHARE = 0.7
+STOP = set("a an and the of for with in to by on".split())
 
 
-def comparative_quotes(g, other_words, about_slug, limit):
-    """Quotes from one product's opinions that also name the other product (words only the other product has)."""
-    if not other_words:
+def name_words(p):
+    """Words of a product's name without its brand ("Anker Soundcore Liberty 4 NC" -> soundcore, liberty, 4, nc)."""
+    return {t for t in norm(p["name"]).split() if t not in set(norm(p.get("brand") or "").split()) and t not in STOP}
+
+
+def names_other(text, other_only, shared_base):
+    """True if a comment names the other product: one of the words only the other product's name has, plus (when
+    the two share a model line, like 'liberty') a word of that line, so 'pro' alone is not enough."""
+    words = set(norm(text).split())
+    if not words & other_only:
+        return False
+    base = {w for w in shared_base if not w.isdigit() and len(w) >= 3}
+    return not base or bool(words & base)
+
+
+def comparative_quotes(g, other_only, shared_base, about_slug, limit):
+    """Quotes from one product's opinions that also name the other product."""
+    if not other_only:
         return []
     clean = lambda t: t.rstrip().endswith((".", "!", "?", '"', "'", ")", "\u201d"))
-    pool = sorted((q for q in g["quotes"] if set(norm(q[3]).split()) & other_words and q[2] in ("positive", "negative")),
+    pool = sorted((q for q in g["quotes"] if q[2] in ("positive", "negative") and names_other(q[3], other_only, shared_base)),
                   key=lambda q: (not clean(q[3]), -q[0], -len(q[3])))
     out, seen_u, seen_t = [], set(), set()
     for spec, user, sent, text, sub, date, url, thread in pool:
@@ -330,14 +349,18 @@ def build_comparisons(ranked):
                 cand.append((len(su), len(st), i, j, su, st))
     cand.sort(key=lambda c: (-c[0], -c[1], c[2], c[3]))
     per = defaultdict(int)
-    out = []
+    out, overlapping = [], []
     for n_su, n_st, i, j, su, st in cand:
+        if n_su >= MAX_SHARED_SHARE * min(len(users[i]), len(users[j])):
+            overlapping.append((ranked[i]["name"], ranked[j]["name"], n_su, min(len(users[i]), len(users[j]))))
+            continue
         if per[i] >= MAX_COMPARISONS_PER_PRODUCT or per[j] >= MAX_COMPARISONS_PER_PRODUCT:
             continue
         A, B = ranked[i], ranked[j]
         ga, gb = A["_g"], B["_g"]
-        only_a, only_b = A["_terms"][0] - B["_terms"][0], B["_terms"][0] - A["_terms"][0]
-        quotes = comparative_quotes(ga, only_b, A["slug"], 3) + comparative_quotes(gb, only_a, B["slug"], 3)
+        wa, wb = name_words(A), name_words(B)
+        quotes = (comparative_quotes(ga, wb - wa, wa & wb, A["slug"], 3)
+                  + comparative_quotes(gb, wa - wb, wa & wb, B["slug"], 3))
         seen = set()
         quotes = [q for q in quotes if not (q["text"].lower() in seen or seen.add(q["text"].lower()))]
         # A page needs real comparative evidence: quotes that name both, or a solid shared audience.
@@ -366,6 +389,11 @@ def build_comparisons(ranked):
             "threads": [t for t in shared if t["title"]][:5],
         })
     out.sort(key=lambda c: (-c["shared_redditors"], c["slug"]))
+    if overlapping:
+        print(f"    {len(overlapping)} pairs share most of their Redditors (no comparison page; the archive may have attached "
+              f"the same comments to both; merge them in scripts/curation.json if they are one product):")
+        for a_, b_, n, m in sorted(overlapping, key=lambda x: -x[2] / x[3])[:8]:
+            print(f"       {a_[:38]} | {b_[:38]}  ({n} of {m})")
     return out
 
 

@@ -349,6 +349,13 @@
    "name": "Numatic Henry Quick",
    "brand": "Numatic",
    "why": "Henry Quick Pet is the Henry Quick (HVB160) sold with pet tools; Reddit discusses them as one vacuum"
+  },
+  {
+   "category": "robot-vacuums",
+   "match": "^narwal flow( robot vacuum and mop)?$",
+   "name": "Narwal Flow",
+   "brand": "Narwal",
+   "why": "The same robot listed twice, once with the generic 'Robot Vacuum and Mop' suffix (136 of 136 Redditors in common)"
   }
  ],
  "rename": [

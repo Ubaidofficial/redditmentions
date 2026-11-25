@@ -35,10 +35,12 @@ const h2hB = cmp.h2h[B.slug];
 const shared = cmp.shared_redditors;
 const prefA = cmp.h2h.prefer[A.slug];
 const prefB = cmp.h2h.prefer[B.slug];
+// Head-to-head among people who discussed both: only worth a sentence when enough of them picked a side.
+const picked = prefA + prefB;
 const prefLine =
-  prefA + prefB > 0
+  picked >= Math.max(5, Math.round(shared * 0.05))
     ? ` Among the ${fmt(shared)} Redditors who discussed both, ${fmt(prefA)} liked the ${A.name} but not the ${B.name}, and ${fmt(prefB)} the reverse.`
-    : ` ${fmt(shared)} Redditors discussed both.`;
+    : ` Most of the ${fmt(shared)} Redditors who discussed both felt the same way about each${picked ? `; only ${fmt(picked)} liked one but not the other` : ''}.`;
 const summary =
   (lead
     ? `The ${lead.name} comes out ahead on Reddit: it ranks #${lead.rank} of ${cat.products.length} ${lower} with a score of ${lead.score}/100 and ${lead.share_positive}% positive opinions, against #${trail.rank}, ${trail.score}/100 and ${trail.share_positive}% for the ${trail.name}.`
