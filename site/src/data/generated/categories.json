@@ -1,0 +1,60 @@
+{
+ "fixture": false,
+ "comments_through": "2026-06-20",
+ "min_opinions": 25,
+ "stats": {
+  "products": 240,
+  "opinions": 46298,
+  "subreddits": 707
+ },
+ "categories": [
+  {
+   "slug": "robot-vacuums",
+   "name": "Robot Vacuums",
+   "products": 40,
+   "opinions": 5885,
+   "top_pick": "MOVA P10 Pro Ultra",
+   "top_image": "https://m.media-amazon.com/images/I/31kIvyWzaYL._SL500_.jpg"
+  },
+  {
+   "slug": "baby-strollers",
+   "name": "Baby Strollers",
+   "products": 40,
+   "opinions": 6748,
+   "top_pick": "Out'n'About Nipper",
+   "top_image": "https://m.media-amazon.com/images/I/41RzJ2ML2IL._SL500_.jpg"
+  },
+  {
+   "slug": "fitness-trackers",
+   "name": "Fitness Trackers",
+   "products": 40,
+   "opinions": 9879,
+   "top_pick": "Garmin Forerunner 255",
+   "top_image": "https://m.media-amazon.com/images/I/41oPOwZvB0L._SL500_.jpg"
+  },
+  {
+   "slug": "ultrawide-monitors",
+   "name": "Ultrawide Monitors",
+   "products": 40,
+   "opinions": 6426,
+   "top_pick": "LG UltraGear 45GR65DC-B",
+   "top_image": "https://m.media-amazon.com/images/I/41bkzJ4oKdL._SL500_.jpg"
+  },
+  {
+   "slug": "wireless-earbuds",
+   "name": "Wireless Earbuds",
+   "products": 40,
+   "opinions": 4233,
+   "top_pick": "Anker Soundcore Space A40",
+   "top_image": "https://m.media-amazon.com/images/I/41nYB0NiPSL._SL500_.jpg"
+  },
+  {
+   "slug": "vacuum-cleaners",
+   "name": "Vacuum Cleaners",
+   "products": 40,
+   "opinions": 13127,
+   "top_pick": "SEBO Mechanical",
+   "top_image": "https://m.media-amazon.com/images/P/B003X5UFU4.01.LZZZZZZZ.jpg"
+  }
+ ]
+}
