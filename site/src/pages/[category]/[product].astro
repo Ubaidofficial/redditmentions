@@ -8,6 +8,7 @@ import { evidence } from '../../lib/format';
 import { firstFit, joinList, phrase, monthYear } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
+import { isThinProduct } from '../../lib/indexing.mjs';
 
 export function getStaticPaths() {
   return categories.flatMap((c: any) =>
@@ -30,6 +31,9 @@ const threads: any[] = p.threads ?? [];
 const timeline: any[] = p.timeline ?? [];
 const recent: any = p.recent ?? null;
 const maxYear = Math.max(1, ...timeline.map((t: any) => t.redditors));
+// Comparisons Reddit actually makes with this product (only pairs with real head-to-head evidence exist).
+const compares = (cat.comparisons ?? []).filter((x: any) => x.a === p.slug || x.b === p.slug);
+const nameOf = (slug: string) => cat.products.find((x: any) => x.slug === slug)?.name ?? slug;
 const quotes = [
   ...p.quotes.filter((q: any) => q.sentiment === 'positive'),
   ...p.quotes.filter((q: any) => q.sentiment === 'negative'),
@@ -131,7 +135,7 @@ const jsonld = [
   },
 ];
 ---
-<Base title={title} description={description} cta={!!p.asin} jsonld={jsonld}>
+<Base title={title} description={description} cta={!!p.asin} jsonld={jsonld} noindexPage={isThinProduct(p)}>
   <div class="wrap">
     <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {p.name}</p>
 
@@ -244,6 +248,23 @@ const jsonld = [
           </tbody>
         </table>
         <p class="sources-note">Bar length shows how many Redditors discussed it that year; the green part is the share who were positive. Years with fewer than 5 Redditors are left out.</p>
+      </section>
+    )}
+
+    {compares.length > 0 && (
+      <section class="where" aria-labelledby="cmp-h">
+        <div class="section-head"><h2 id="cmp-h">{p.name} vs other {lower}</h2><span class="kicker">Compared on Reddit</span></div>
+        <ul class="threads">
+          {compares.map((x: any) => {
+            const other = x.a === p.slug ? x.b : x.a;
+            return (
+              <li>
+                <a href={`/${cat.slug}/compare/${x.slug}/`}>{p.name} vs {nameOf(other)}</a>
+                <small class="num">{fmt(x.shared_redditors)} Redditors discussed both · {fmt(x.shared_threads)} shared threads</small>
+              </li>
+            );
+          })}
+        </ul>
       </section>
     )}
 

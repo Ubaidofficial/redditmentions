@@ -289,6 +289,86 @@ def product_extras(g, through, terms):
     }
 
 
+# Comparison pages exist only for pairs Reddit actually compares: products discussed by the same Redditors in the
+# same threads. Each product keeps its strongest partners, so the site does not fill up with "every X vs every Y".
+MIN_SHARED_REDDITORS = 5
+MIN_SHARED_THREADS = 3
+MAX_COMPARISONS_PER_PRODUCT = 6
+
+
+def comparative_quotes(g, other_words, about_slug, limit):
+    """Quotes from one product's opinions that also name the other product (words only the other product has)."""
+    if not other_words:
+        return []
+    clean = lambda t: t.rstrip().endswith((".", "!", "?", '"', "'", ")", "\u201d"))
+    pool = sorted((q for q in g["quotes"] if set(norm(q[3]).split()) & other_words and q[2] in ("positive", "negative")),
+                  key=lambda q: (not clean(q[3]), -q[0], -len(q[3])))
+    out, seen_u, seen_t = [], set(), set()
+    for spec, user, sent, text, sub, date, url, thread in pool:
+        if user in seen_u or text.lower() in seen_t or not url:
+            continue
+        seen_u.add(user)
+        seen_t.add(text.lower())
+        q = {"text": text, "sentiment": sent, "about": about_slug, "subreddit": sub, "date": date, "url": url}
+        if thread:
+            q["thread"] = thread[:140]
+        out.append(q)
+        if len(out) == limit:
+            break
+    return out
+
+
+def build_comparisons(ranked):
+    """Pairs of ranked products that Reddit discusses together, with head-to-head evidence."""
+    users = [set(p["_g"]["users"]) for p in ranked]
+    threads = [set(p["_g"]["threads"]) for p in ranked]
+    cand = []
+    for i in range(len(ranked)):
+        for j in range(i + 1, len(ranked)):
+            su, st = users[i] & users[j], threads[i] & threads[j]
+            if len(su) >= MIN_SHARED_REDDITORS and len(st) >= MIN_SHARED_THREADS:
+                cand.append((len(su), len(st), i, j, su, st))
+    cand.sort(key=lambda c: (-c[0], -c[1], c[2], c[3]))
+    per = defaultdict(int)
+    out = []
+    for n_su, n_st, i, j, su, st in cand:
+        if per[i] >= MAX_COMPARISONS_PER_PRODUCT or per[j] >= MAX_COMPARISONS_PER_PRODUCT:
+            continue
+        A, B = ranked[i], ranked[j]
+        ga, gb = A["_g"], B["_g"]
+        only_a, only_b = A["_terms"][0] - B["_terms"][0], B["_terms"][0] - A["_terms"][0]
+        quotes = comparative_quotes(ga, only_b, A["slug"], 3) + comparative_quotes(gb, only_a, B["slug"], 3)
+        seen = set()
+        quotes = [q for q in quotes if not (q["text"].lower() in seen or seen.add(q["text"].lower()))]
+        # A page needs real comparative evidence: quotes that name both, or a solid shared audience.
+        if not quotes and n_su < 15:
+            continue
+        per[i] += 1
+        per[j] += 1
+        sa = Counter(stance(ga["users"][u]) for u in su)
+        sb = Counter(stance(gb["users"][u]) for u in su)
+        prefer_a = sum(1 for u in su if stance(ga["users"][u]) == "positive" and stance(gb["users"][u]) == "negative")
+        prefer_b = sum(1 for u in su if stance(gb["users"][u]) == "positive" and stance(ga["users"][u]) == "negative")
+        shared = []
+        for k in st:
+            ta, tb = ga["threads"][k], gb["threads"][k]
+            shared.append({"title": ta["title"][:160], "subreddit": ta["subreddit"], "url": ta["url"],
+                           "redditors": len(ta["users"] | tb["users"])})
+        shared.sort(key=lambda t: (-t["redditors"], t["title"]))
+        x, y = sorted([A["slug"], B["slug"]])
+        out.append({
+            "slug": f"{x}-vs-{y}", "a": x, "b": y,
+            "shared_redditors": n_su, "shared_threads": n_st,
+            "h2h": {A["slug"]: {"positive": sa["positive"], "neutral": sa["neutral"], "negative": sa["negative"]},
+                    B["slug"]: {"positive": sb["positive"], "neutral": sb["neutral"], "negative": sb["negative"]},
+                    "prefer": {A["slug"]: prefer_a, B["slug"]: prefer_b}},
+            "quotes": quotes,
+            "threads": [t for t in shared if t["title"]][:5],
+        })
+    out.sort(key=lambda c: (-c["shared_redditors"], c["slug"]))
+    return out
+
+
 def point_entry(g, kind, title, count):
     """A praised/criticised point, with one supporting Reddit quote linked to its comment when one can be found."""
     entry = {"title": title, "count": count}
@@ -549,6 +629,7 @@ def main():
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
                 "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_threads": g["threads"], "_old_slugs": g.get("old_slugs") or [],
+                "_g": g, "_terms": terms,
                 "likes": [point_entry(g, "likes", t, k) for t, k in likes],
                 "dislikes": [point_entry(g, "dislikes", t, k) for t, k in dislikes],
                 "quotes": (pos_q := pick_quotes(g["quotes"], "positive", 6, terms))
@@ -577,6 +658,10 @@ def main():
         by_asin = 0 if a.no_asin_photos else fill_asin_photos(ranked, photo_cache)
         for p in ranked:
             p.pop("_by_asin", None)
+        comparisons = build_comparisons(ranked)
+        for p in ranked:
+            p.pop("_g", None)
+            p.pop("_terms", None)
         photo_totals["products"] += len(ranked)
         photo_totals["asin"] += by_asin
         photo_totals["archive"] += sum(1 for p in ranked if p["image"]) - by_asin
@@ -597,14 +682,16 @@ def main():
             discussions = {"total": len(pooled),
                            "top": [{"title": t["title"][:160], "subreddit": t["subreddit"], "url": t["url"],
                                     "redditors": len(t["users"])} for t in top_threads]}
-            json.dump({"slug": c["slug"], "name": c["name"], "discussions": discussions, "products": ranked},
+            json.dump({"slug": c["slug"], "name": c["name"], "discussions": discussions, "products": ranked,
+                       "comparisons": comparisons},
                       f, ensure_ascii=False, separators=(",", ":"))
         meta_cats.append({"slug": c["slug"], "name": c["name"], "products": len(ranked),
                           "opinions": sum(p["opinions"] for p in ranked),
                           "top_pick": ranked[0]["name"] if ranked else None,
                           # photo for the category card: the best-ranked product (of the top 5) that has one
                           "top_image": next((p["image"] for p in ranked[:5] if p.get("image")), None)})
-        print(f"  {c['name']:<22} {len(ranked):>3} ranked products, {sum(1 for p in ranked if p['image'])} with a photo, "
+        print(f"  {c['name']:<22} {len(ranked):>3} ranked products, {len(comparisons)} comparisons, "
+              f"{sum(1 for p in ranked if p['image'])} with a photo, "
               f"top: {ranked[0]['name'] if ranked else '-'}")
 
     meta_cats = [m for m in meta_cats if m["products"] > 0]

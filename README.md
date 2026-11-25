@@ -152,6 +152,17 @@ Environment variables (set in `site/.env` or the build environment):
   older Amazon image address that is not documented and could stop working; products then fall back to the
   drawn illustration. The same Associates-terms question as for the other photos applies.
 
+## Indexing and comparison pages
+
+`site/src/lib/indexing.mjs` decides which pages search engines may index, for both the page tags and the sitemap:
+
+- **Thin product pages** (fewer than 40 Redditors, or fewer than 3 usable quotes) are built and linked but carry
+  `noindex, follow` and never go in the sitemap. Change the thresholds there.
+- **Comparison pages** (`/<category>/compare/<a>-vs-<b>/`) are built only for pairs Reddit actually compares: at least
+  5 Redditors and 3 threads in common, and either a quote that names both products or 15+ shared Redditors. Each
+  product keeps its 6 strongest pairs (`build_comparisons` in `scripts/build_site_data.py`). They are `noindex` until
+  their path is added to `INDEXED_COMPARISONS`, which also puts them in the sitemap, so they can be released in batches.
+
 ## Publishing
 
 On your own machine, from the project root:

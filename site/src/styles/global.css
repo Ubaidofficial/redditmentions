@@ -597,3 +597,29 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 .recent-top { margin-top: 56px; }
 .recent-top .section-head h2 { font: 400 clamp(28px, 3.4vw, 40px)/1.08 var(--serif); letter-spacing: -.02em; }
 .page-head .fresh { margin-top: 12px; }
+
+/* ---- comparison pages ---- */
+.vs-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border-top: 5px solid var(--ink); border-bottom: 1px solid var(--rule); }
+.vs-card { padding: 22px 28px 24px 0; }
+.vs-card + .vs-card { padding-left: 28px; border-left: 1px solid var(--rule); }
+.vs-card h2 { font: 400 clamp(26px, 2.8vw, 36px)/1.1 var(--serif); letter-spacing: -.015em; margin: 10px 0 8px; }
+.vs-card h2 a { text-decoration: none; } .vs-card h2 a:hover { color: var(--orange); }
+.vs-card p { font: 450 14px/1.45 var(--sans); color: var(--ink-2); margin-bottom: 10px; }
+.vs-card p b { font-size: 18px; color: var(--ink); }
+.vs-acts { display: flex; gap: 16px; align-items: center; margin-top: 14px; flex-wrap: wrap; }
+.vs-table-wrap { overflow-x: auto; }
+.vs-table { width: 100%; border-collapse: collapse; font-size: 15.5px; }
+.vs-table th, .vs-table td { text-align: left; padding: 12px 14px 12px 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.vs-table thead th { font: 600 12px/1.3 var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); }
+.vs-table tbody th { font-weight: 500; color: var(--ink-3); width: 30%; }
+.vs-table td { width: 35%; }
+.vs-h2h { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+.vs-h2h .h2h-name { font: 400 24px/1.2 var(--serif); margin-bottom: 10px; }
+.vs-h2h p.num { margin-top: 10px; font-size: 14.5px; color: var(--ink-2); }
+.compare-links { list-style: none; margin: 8px 0 0; padding: 0; max-width: 780px; }
+@media (max-width: 760px) {
+  .vs-cards, .vs-h2h { grid-template-columns: 1fr; }
+  .vs-card + .vs-card { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); }
+  .vs-table { font-size: 14px; }
+  .vs-table tbody th { width: 34%; }
+}

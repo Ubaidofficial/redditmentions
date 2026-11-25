@@ -1,0 +1,250 @@
+---
+// "X vs Y" pages, built only for pairs Reddit actually compares (see build_comparisons in scripts/build_site_data.py).
+import Base from '../../../layouts/Base.astro';
+import Sentiment from '../../../components/Sentiment.astro';
+import BuyButton from '../../../components/BuyButton.astro';
+import { firstFit, joinList, phrase, monthYear } from '../../../lib/seo';
+import { isThinProduct, INDEXED_COMPARISONS } from '../../../lib/indexing.mjs';
+import { SITE, AMAZON_TAG } from '../../../config';
+import { categories, getCategory, meta } from '../../../lib/data';
+
+export function getStaticPaths() {
+  return categories.flatMap((c: any) =>
+    (getCategory(c.slug).comparisons ?? []).map((cmp: any) => ({ params: { category: c.slug, pair: cmp.slug } })),
+  );
+}
+
+const { category, pair } = Astro.params;
+const cat = getCategory(category as string);
+const cmp = cat.comparisons.find((x: any) => x.slug === pair);
+const bySlug = (s: string) => cat.products.find((p: any) => p.slug === s);
+const A = bySlug(cmp.a);
+const B = bySlug(cmp.b);
+const fmt = (n: number) => n.toLocaleString('en-US');
+const lower = cat.name.toLowerCase();
+const path = `/${cat.slug}/compare/${cmp.slug}/`;
+const abs = (p: string) => new URL(p, SITE.url).toString();
+const pct = (n: number, d: number) => (d ? Math.round((100 * n) / d) : 0);
+
+// Who comes out ahead: the ranking score decides; within 2 points it is a close call.
+const diff = A.score - B.score;
+const lead = Math.abs(diff) <= 2 ? null : diff > 0 ? A : B;
+const trail = lead ? (lead === A ? B : A) : null;
+const h2hA = cmp.h2h[A.slug];
+const h2hB = cmp.h2h[B.slug];
+const shared = cmp.shared_redditors;
+const prefA = cmp.h2h.prefer[A.slug];
+const prefB = cmp.h2h.prefer[B.slug];
+const prefLine =
+  prefA + prefB > 0
+    ? ` Among the ${fmt(shared)} Redditors who discussed both, ${fmt(prefA)} liked the ${A.name} but not the ${B.name}, and ${fmt(prefB)} the reverse.`
+    : ` ${fmt(shared)} Redditors discussed both.`;
+const summary =
+  (lead
+    ? `The ${lead.name} comes out ahead on Reddit: it ranks #${lead.rank} of ${cat.products.length} ${lower} with a score of ${lead.score}/100 and ${lead.share_positive}% positive opinions, against #${trail.rank}, ${trail.score}/100 and ${trail.share_positive}% for the ${trail.name}.`
+    : `It is close: the ${A.name} (#${A.rank}, score ${A.score}/100, ${A.share_positive}% positive) and the ${B.name} (#${B.rank}, score ${B.score}/100, ${B.share_positive}% positive) are within 2 points of each other.`) +
+  prefLine;
+
+const title = firstFit(
+  [`${A.name} vs ${B.name}: Which Does Reddit Prefer?`, `${A.name} vs ${B.name}: Reddit Comparison`, `${A.name} vs ${B.name} (Reddit)`, `${A.name} vs ${B.name}`],
+  62,
+);
+const description = firstFit(
+  [
+    `Reddit on the ${A.name} vs ${B.name}: ${A.share_positive}% positive from ${fmt(A.opinions)} Redditors vs ${B.share_positive}% from ${fmt(B.opinions)}. ${fmt(shared)} Redditors discussed both.`,
+    `${A.name} vs ${B.name}: ${A.share_positive}% vs ${B.share_positive}% positive on Reddit. ${fmt(shared)} Redditors discussed both.`,
+    `${A.name} vs ${B.name}: what ${fmt(shared)} Redditors who discussed both said.`,
+  ],
+  160,
+);
+
+const row = (label: string, a: any, b: any) => ({ label, a, b });
+const top = (list: any[]) => (list && list[0] ? `${list[0].title} (${list[0].count})` : '—');
+const subOf = (p: any) => (p.subreddits && p.subreddits[0] ? `r/${p.subreddits[0].name}` : '—');
+const allRows = [
+  row(`Rank among ${cat.products.length} ${lower}`, `#${A.rank}`, `#${B.rank}`),
+  row('Score (out of 100)', A.score, B.score),
+  row('Redditors counted', fmt(A.opinions), fmt(B.opinions)),
+  row('Positive', `${A.share_positive}%`, `${B.share_positive}%`),
+  row('Negative', `${A.share_negative}%`, `${B.share_negative}%`),
+  row('Positive, last 12 months', A.recent ? `${A.recent.share_positive}% of ${fmt(A.recent.redditors)}` : '—', B.recent ? `${B.recent.share_positive}% of ${fmt(B.recent.redditors)}` : '—'),
+  row('Most praised for', top(A.likes), top(B.likes)),
+  row('Most common complaint', top(A.dislikes), top(B.dislikes)),
+  row('Discussed most in', subOf(A), subOf(B)),
+  row('Comments counted', A.first_date ? `${monthYear(A.first_date)} to ${monthYear(A.last_date)}` : '—', B.first_date ? `${monthYear(B.first_date)} to ${monthYear(B.last_date)}` : '—'),
+];
+
+// Drop measures neither product has data for.
+const rows = allRows.filter((r) => !(r.a === '—' && r.b === '—'));
+const hasPoints = [A, B].some((p: any) => p.likes.length || p.dislikes.length);
+
+// Other comparisons for either product (internal links that differ from page to page).
+const others = cat.comparisons
+  .filter((x: any) => x.slug !== cmp.slug && (x.a === A.slug || x.b === A.slug || x.a === B.slug || x.b === B.slug))
+  .slice(0, 6);
+const nameOf = (s: string) => bySlug(s)?.name ?? s;
+
+const faqs = [
+  {
+    q: `Is the ${A.name} better than the ${B.name}, according to Reddit?`,
+    a: summary,
+  },
+  {
+    q: `Which is more popular on Reddit, the ${A.name} or the ${B.name}?`,
+    a: `${A.opinions === B.opinions ? 'Equally' : A.opinions > B.opinions ? `The ${A.name}` : `The ${B.name}`}${A.opinions === B.opinions ? '' : ' is discussed more'}: ${fmt(A.opinions)} Redditors gave an opinion on the ${A.name} and ${fmt(B.opinions)} on the ${B.name}.`,
+  },
+  {
+    q: `Which has fewer complaints, the ${A.name} or the ${B.name}?`,
+    a:
+      `${A.share_negative === B.share_negative ? 'They are level' : `The ${A.share_negative < B.share_negative ? A.name : B.name}`}: ${A.share_negative}% of Redditors were negative about the ${A.name} and ${B.share_negative}% about the ${B.name}.` +
+      (A.dislikes[0] ? ` The ${A.name}'s most common complaint is ${phrase(A.dislikes[0].title)}.` : '') +
+      (B.dislikes[0] ? ` The ${B.name}'s is ${phrase(B.dislikes[0].title)}.` : ''),
+  },
+  ...(cmp.threads.length
+    ? [{
+        q: `Where do Redditors compare the ${A.name} and the ${B.name}?`,
+        a: `Both come up in ${fmt(cmp.shared_threads)} of the same threads, for example “${cmp.threads[0].title}” in r/${cmp.threads[0].subreddit}.`,
+      }]
+    : []),
+];
+
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
+      { '@type': 'ListItem', position: 2, name: cat.name, item: abs(`/${cat.slug}/`) },
+      { '@type': 'ListItem', position: 3, name: `${A.name} vs ${B.name}`, item: abs(path) },
+    ],
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faqs.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  },
+];
+const noindexPage = !INDEXED_COMPARISONS.has(path) || isThinProduct(A) || isThinProduct(B);
+---
+<Base title={title} description={description} jsonld={jsonld} noindexPage={noindexPage}>
+  <div class="wrap">
+    <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; <a href={`/${cat.slug}/`}>{cat.name}</a> &nbsp;/&nbsp; {A.name} vs {B.name}</p>
+    <header class="page-head">
+      <span class="kicker">Comparison · {cat.name}</span>
+      <p class="fresh num">{fmt(shared)} Redditors discussed both, in {fmt(cmp.shared_threads)} shared threads · data through {meta.comments_through}</p>
+      <h1>{A.name} vs {B.name} <em>according to Reddit</em></h1>
+      <p class="tldr"><b>Short answer:</b> {summary}</p>
+    </header>
+
+    <div class="vs-cards">
+      {[A, B].map((p: any) => (
+        <div class="vs-card">
+          <span class="kicker">No. {p.rank} of {cat.products.length}</span>
+          <h2><a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a></h2>
+          <p class="num"><b>{p.score}</b>/100 · {p.share_positive}% positive · {fmt(p.opinions)} Redditors</p>
+          <Sentiment positive={p.positive} neutral={p.neutral} negative={p.negative} />
+          <div class="vs-acts">
+            <a class="textlink" href={`/${cat.slug}/${p.slug}/`}>What Reddit says →</a>
+            <BuyButton asin={p.asin} small label="Amazon" />
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <section class="section">
+      <div class="section-head"><h2>Side by side</h2><span class="kicker">All Redditors</span></div>
+      <div class="vs-table-wrap">
+        <table class="vs-table">
+          <thead><tr><th scope="col"><span class="sr">Measure</span></th><th scope="col">{A.name}</th><th scope="col">{B.name}</th></tr></thead>
+          <tbody>{rows.map((r) => <tr><th scope="row">{r.label}</th><td>{r.a}</td><td>{r.b}</td></tr>)}</tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="section-head"><h2>Redditors who discussed both</h2><span class="kicker num">{fmt(shared)} people</span></div>
+      <div class="vs-h2h">
+        {[[A, h2hA, prefA], [B, h2hB, prefB]].map(([p, h, pref]: any) => (
+          <div>
+            <p class="h2h-name">{p.name}</p>
+            <Sentiment positive={h.positive} neutral={h.neutral} negative={h.negative} />
+            <p class="num">{pct(h.positive, shared)}% positive · {pct(h.negative, shared)}% negative · {fmt(pref)} liked it but not the other</p>
+          </div>
+        ))}
+      </div>
+      <p class="sources-note">The same people judging both products: each Redditor's overall stance on each, one vote per person.</p>
+    </section>
+
+    {cmp.quotes.length > 0 && (
+      <section class="receipts">
+        <h2>What Redditors said <em>comparing them</em></h2>
+        {cmp.quotes.map((q: any) => (
+          <blockquote class={q.sentiment === 'negative' ? 'neg' : 'pos'}>
+            <div>
+              <p>{q.text}</p>
+              <footer>{q.sentiment === 'negative' ? 'Negative' : 'Positive'} about the {nameOf(q.about)} · r/{q.subreddit}{q.thread ? <> · in “{q.thread}”</> : ''} · {q.date} · <a href={q.url} rel="nofollow noopener" target="_blank">Original comment ↗</a></footer>
+            </div>
+          </blockquote>
+        ))}
+      </section>
+    )}
+
+    {hasPoints && (
+      <section class="pair">
+        {[A, B].map((p: any) => (
+          <div>
+            <h2>{p.name}: praised and criticised</h2>
+            {p.likes.length || p.dislikes.length ? (
+              <ul>
+                {p.likes.slice(0, 3).map((l: any) => <li><span><b class="up">Praised</b> {l.title}</span><small>{l.count} mentions</small></li>)}
+                {p.dislikes.slice(0, 3).map((d: any) => <li><span><b class="down">Criticised</b> {d.title}</span><small>{d.count} mentions</small></li>)}
+              </ul>
+            ) : <p class="empty">No recurring points recorded.</p>}
+          </div>
+        ))}
+      </section>
+    )}
+
+    {cmp.threads.length > 0 && (
+      <section class="where">
+        <div class="section-head"><h2>Threads where both come up</h2><span class="kicker num">{fmt(cmp.shared_threads)} threads</span></div>
+        <ol class="threads">
+          {cmp.threads.map((t: any) => (
+            <li>
+              {t.url ? <a href={t.url} rel="nofollow noopener" target="_blank">{t.title}</a> : <span>{t.title}</span>}
+              <small class="num">r/{t.subreddit} · {fmt(t.redditors)} Redditors counted{t.url ? ' ↗' : ''}</small>
+            </li>
+          ))}
+        </ol>
+      </section>
+    )}
+
+    <section class="section" id="how">
+      <div class="section-head"><h2>{A.name} vs {B.name}: questions</h2><span class="kicker">FAQ</span></div>
+      <div class="faq">
+        {faqs.map((f) => (
+          <details>
+            <summary>{f.q}</summary>
+            <p>{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+
+    {others.length > 0 && (
+      <section class="where">
+        <div class="section-head"><h2>Other comparisons</h2><a class="textlink" href={`/${cat.slug}/`}>All {cat.products.length} {lower}</a></div>
+        <ul class="threads">
+          {others.map((x: any) => (
+            <li><a href={`/${cat.slug}/compare/${x.slug}/`}>{nameOf(x.a)} vs {nameOf(x.b)}</a><small class="num">{fmt(x.shared_redditors)} Redditors discussed both</small></li>
+          ))}
+        </ul>
+      </section>
+    )}
+
+    <p class="howline">
+      Scores and shares use one vote per Redditor; the comparison only counts comments collected through {meta.comments_through}.{' '}
+      <a href="/methodology/">How rankings are made</a>.{AMAZON_TAG && <> Amazon links are affiliate links.</>}
+    </p>
+  </div>
+</Base>
