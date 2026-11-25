@@ -38,10 +38,21 @@ const faqs = [
 ];
 // Search snippet: name the categories, since that is what people search for ("best robot vacuum reddit").
 const catNames = categories.map((c: any) => c.name.toLowerCase());
-const title = `Best Products According to Reddit, Ranked | ${SITE.name}`;
+// Keyword research (Nov 2026): "reddit recommendations", "reddit product reviews" and "reddit recs" are the searches
+// that sent RedditRecs (the site this replaces in search) a fifth of its traffic.
+const title = firstFit(
+  [
+    `Reddit Product Reviews & Recommendations, Ranked | ${SITE.name}`,
+    `Reddit Product Recommendations, Ranked | ${SITE.name}`,
+    `Best Products According to Reddit, Ranked | ${SITE.name}`,
+  ],
+  62,
+);
 const named = catNames.length > 4 ? [...catNames.slice(0, 4), 'more'] : catNames;
 const description = firstFit(
   [
+    `Reddit product reviews and recommendations for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. Every quote links to its source.`,
+    `Reddit product recommendations for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. Every quote links to its source.`,
     `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. One vote per person; every quote links to its source.`,
     `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions, with every quote linked to its source.`,
     `What Reddit recommends for ${joinList(named)}, ranked from ${fmt(stats.opinions)} Redditors' opinions. Every quote links to its source.`,

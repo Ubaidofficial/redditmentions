@@ -6,8 +6,8 @@ import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
 import CategoryCard from '../../components/CategoryCard.astro';
 import { evidence } from '../../lib/format';
-import { firstFit, joinList, dataYear, monthYear, longDate } from '../../lib/seo';
-import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
+import { firstFit, joinList, dataYear, monthYear, longDate, topSubreddits } from '../../lib/seo';
+import { SITE, SHOW_IMAGES, AMAZON_TAG, SEARCH_NAMES } from '../../config';
 import { categories, getCategory, meta, modifiedOn } from '../../lib/data';
 
 export function getStaticPaths() {
@@ -50,6 +50,11 @@ const idx = categories.findIndex((c: any) => c.slug === cat.slug);
 const others = [...categories.slice(idx + 1), ...categories.slice(0, idx)].slice(0, 6);
 
 const lower = cat.name.toLowerCase();
+// The words searchers use for this category (see SEARCH_NAMES in config.ts); the category name otherwise.
+const seoName: string = SEARCH_NAMES[cat.slug] ?? cat.name;
+// Where the opinions come from: the subreddits with the most Redditors across this ranking.
+const subs = topSubreddits(products, 3);
+const subsText = joinList(subs.map((x) => `r/${x}`));
 const updated = modifiedOn(`/${cat.slug}/`);
 const year = dataYear(meta.comments_through);
 // Freshness: what Reddit discussed most in the last 12 months of data, and the newest comment counted.
@@ -65,14 +70,21 @@ const bestBrand = [...brandBoard].filter((b) => b.opinions >= 50).sort((a, b) =>
 // Search snippet: the keyword people use ("best X reddit"), the year of the data and the top picks by name.
 const title = firstFit(
   [
-    `Best ${cat.name} According to Reddit (${year}): ${products.length} Ranked`,
+    `Best ${seoName} According to Reddit (${year}): ${products.length} Ranked`,
+    `Best ${seoName} According to Reddit (${year})`,
+    `Best ${seoName} According to Reddit`,
     `Best ${cat.name} According to Reddit (${year})`,
-    `Best ${cat.name} According to Reddit`,
   ],
   62,
 );
 const description = firstFit(
   [
+    ...(subs.length
+      ? [
+          `Reddit's top-ranked ${lower}: ${joinList(top3)}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors, mostly in ${subsText}.`,
+          `Reddit's top ${lower}: ${joinList(top3.slice(0, 2))}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors, mostly in ${subsText}.`,
+        ]
+      : []),
     `Reddit's top-ranked ${lower}: ${joinList(top3)}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors' opinions, with links to the original comments.`,
     `Reddit's top-ranked ${lower}: ${joinList(top3)}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors' opinions.`,
     `Reddit's top-ranked ${lower}: ${joinList(top3.slice(0, 2))}. ${products.length} ranked from ${fmt(totalOpinions)} Redditors' opinions.`,
@@ -111,6 +123,12 @@ const faqs = [
         a: `In the 12 months to ${monthYear(meta.comments_through)}, the most discussed were ${joinList(recentTop.slice(0, 3).map((p: any) => `${p.name} (${fmt(p.recent.redditors)} Redditors, ${p.recent.share_positive}% positive)`))}.`,
       }]
     : []),
+  ...(subs.length
+    ? [{
+        q: 'Which subreddits is this ranking based on?',
+        a: `Mostly ${subsText}, plus other communities where ${lower} come up. Each Redditor counts once per product, and every quote on the product pages links to the original comment.`,
+      }]
+    : []),
   {
     q: 'How recent is the data?',
     a: `Rankings use public Reddit comments collected through ${meta.comments_through}${lastDate ? `; the newest comment counted for ${lower} is from ${lastDate}` : ''}. Products released after that may be missing.`,
@@ -138,7 +156,7 @@ const jsonld = [
   {
     '@context': 'https://schema.org',
     '@type': 'ItemList',
-    name: `Best ${cat.name} according to Reddit`,
+    name: `Best ${seoName} according to Reddit`,
     description,
     numberOfItems: products.length,
     itemListElement: products.map((p: any) => ({
@@ -156,11 +174,11 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
     <header class="page-head">
       <span class="kicker">{products.length} ranked · through <span style="white-space:nowrap">{meta.comments_through}</span></span>
       <p class="basis num">Based on <b>{fmt(totalOpinions)}</b> Redditors’ opinions<span class="sep"> · </span><a href="#how">How it works</a></p>
-      <h1>Best {cat.name} <em>according to Reddit</em></h1>
+      <h1>Best {seoName} <em>according to Reddit</em></h1>
       <p class="lead">
         {products.length} {lower}, each with at least {meta.min_opinions} Redditors behind it and {fmt(totalOpinions)} in
         all{disc ? <> across {fmt(disc.total)} Reddit threads</> : ''}. Rankings weigh approval against how many people were
-        counted, so a few enthusiasts cannot carry a product to the top.
+        counted, so a few enthusiasts cannot carry a product to the top.{subs.length > 0 && <> Discussed most in {subsText}.</>}
       </p>
       {(lastDate || updated) && (
         <p class="fresh num">

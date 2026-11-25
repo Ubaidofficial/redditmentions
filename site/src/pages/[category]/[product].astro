@@ -5,7 +5,7 @@ import BuyButton from '../../components/BuyButton.astro';
 import Thumb from '../../components/Thumb.astro';
 import StandingStrip from '../../components/StandingStrip.astro';
 import { evidence } from '../../lib/format';
-import { firstFit, joinList, phrase, monthYear, longDate } from '../../lib/seo';
+import { firstFit, joinList, phrase, monthYear, longDate, searchName } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta, modifiedOn } from '../../lib/data';
 import { isThinProduct } from '../../lib/indexing.mjs';
@@ -47,18 +47,22 @@ const dislike = p.dislikes[0] ? phrase(p.dislikes[0].title) : null;
 const likesText = p.likes.slice(0, 3).map((l: any) => phrase(l.title));
 const dislikesText = p.dislikes.slice(0, 3).map((d: any) => phrase(d.title));
 
-// Search snippet: people search "<product> reddit" and "<product> review", so the title says both.
+// Search snippet. Keyword research (Nov 2026): most searches are the bare product name ("garmin forerunner 165"),
+// then "<product> review", then "<product> reddit". So the title starts with the name as people type it (no
+// " Series"), puts "Reddit Review" right after it, and adds the result and how many people it rests on.
+const sn = searchName(p.name);
 const title = firstFit(
   [
-    `${p.name}: Reddit Reviews (${p.share_positive}% Positive)`,
-    `${p.name} Reddit Reviews`,
-    `${p.name} on Reddit`,
-    p.name,
+    `${sn} Reddit Review: ${p.share_positive}% Positive, ${fmt(p.opinions)} Redditors`,
+    `${sn} Reddit Review: ${p.share_positive}% Positive`,
+    `${sn} Reddit Review`,
+    `${sn} Review`,
+    sn,
   ],
   62,
 );
 // Longest version that fits: drop the closing note, then the complaint, then the praise.
-const lead = `${fmt(p.opinions)} Redditors on the ${p.name}: ${p.share_positive}% positive, ranked #${p.rank} of ${cat.products.length} ${lower}.`;
+const lead = `${sn} reviews from ${fmt(p.opinions)} Redditors: ${p.share_positive}% positive, ranked #${p.rank} of ${cat.products.length} ${lower}.`;
 const praise = like ? ` Praised for ${like}.` : '';
 const complaint = dislike ? ` Criticised for ${dislike}.` : '';
 const description = firstFit(

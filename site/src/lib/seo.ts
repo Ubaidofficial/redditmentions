@@ -44,3 +44,44 @@ export function longDate(date: string): string {
   if (!m) return String(date || '');
   return `${Number(m[3])} ${monthYear(date)}`;
 }
+
+/**
+ * The second product's name as people type it in a comparison search, with the words it shares with the
+ * first dropped: "Garmin Instinct 2" vs "Garmin Instinct 3" -> "3"; "Anker Soundcore Liberty 4 NC" vs
+ * "Anker Soundcore Liberty 4 Pro" -> "Liberty 4 Pro"; "Miele Classic C1" vs "Miele CX1" -> "CX1".
+ * Different brands keep the full name.
+ */
+export function shortVs(a: string, b: string): string {
+  const A = a.split(/\s+/), B = b.split(/\s+/);
+  let k = 0;
+  while (k < Math.min(A.length, B.length) - 1 && A[k].toLowerCase() === B[k].toLowerCase()) k++;
+  if (k === 0) return b;
+  const rest = B.slice(k);
+  // A bare model number reads naturally on its own when the first name also ends in one ("Instinct 2 vs 3",
+  // "Forerunner 955 vs 965"), not after a suffix ("Liberty 3 Pro vs 5" becomes "vs Liberty 5" below).
+  if (rest.length === 1 && /^\d+$/.test(rest[0]) && A.length === k + 1 && /^\d+$/.test(A[k])) return rest[0];
+  // A single word with no model number needs its brand to make sense ("Zoe Terra Double vs Zoe Tour").
+  if (k === 1 && rest.length === 1 && !/\d/.test(rest[0])) return b;
+  // Otherwise start from the product family: the shared word before the first shared word with a digit
+  // ("Liberty" in "Liberty 4 Pro"), else the last shared word ("Qrevo S"), but never the brand alone.
+  const firstDigit = A.slice(0, k).findIndex((w) => /\d/.test(w));
+  let from = firstDigit > 0 ? firstDigit - 1 : k - 1;
+  if (from === 0 && k > 1) from = 1;
+  if (from === 0) return rest.join(' ');
+  return B.slice(from).join(' ');
+}
+
+/** A product name as people search it: without a trailing " Series" or a bracketed note ("(49-inch)"). */
+export function searchName(name: string): string {
+  return name.replace(/\s*\([^)]*\)\s*/g, ' ').replace(/\s+Series$/i, '').replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The most-discussed subreddits across a set of products, from each product's { name, redditors } list.
+ * Returns names without the "r/" prefix, most Redditors first.
+ */
+export function topSubreddits(products: any[], n = 3): string[] {
+  const tally = new Map<string, number>();
+  for (const p of products) for (const s of p.subreddits ?? []) tally.set(s.name, (tally.get(s.name) ?? 0) + (s.redditors ?? 0));
+  return [...tally.entries()].sort((a, b) => b[1] - a[1]).slice(0, n).map(([name]) => name);
+}
