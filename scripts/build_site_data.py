@@ -185,13 +185,49 @@ def thread_url(permalink):
     return "https://www.reddit.com" + m.group(1).rstrip("/") + "/" if m else None
 
 
-def pick_quotes(cands, sentiment, limit):
-    """Most specific, informative quotes of one sentiment; one per Redditor, no repeats."""
-    chosen, seen_users, seen_text = [], set(), set()
+# Words that say nothing about which product a comment means ("pro", "robot", "vacuum" ...).
+GENERIC = set("""a an and the of for with in to by on new gen series edition model version plus pro max ultra mini lite air
+plus se s x xl one two black white red blue grey gray silver green pink wireless bluetooth true earbuds earbud earphones
+headphones buds noise cancelling canceling anc robot vacuum vacuums cleaner cleaners mop mopping self empty emptying base
+station cordless corded stick upright canister bagless bagged handheld stroller strollers pram jogging travel system
+lightweight double twin single monitor monitors gaming curved ultrawide inch hz hdr oled led ips qd smart watch watches
+tracker trackers fitness gps band sport active complete""".split())
+
+
+def product_terms(brand, names):
+    """(model words, brand words) used to tell whether a comment is about this product."""
+    btoks = set(norm(brand).split())
+    model = set()
+    for n in names:
+        for t in norm(n).split():
+            if t not in btoks and t not in GENERIC and (len(t) >= 3 or any(ch.isdigit() for ch in t) and len(t) >= 2):
+                model.add(t)
+    return model, {t for t in btoks if len(t) >= 3 and t not in GENERIC}
+
+
+def relevance(text, thread, terms):
+    """2 = names the model, 1 = names the brand or sits in a thread about the model, 0 = neither."""
+    model, brand = terms
+    words = set(norm(text).split())
+    if words & model:
+        return 2
+    if words & brand or set(norm(thread or "").split()) & model:
+        return 1
+    return 0
+
+
+def pick_quotes(cands, sentiment, limit, terms=(set(), set()), exclude=(), min_any=2):
+    """Quotes of one sentiment that are clearly about this product, then the cleanest and most specific;
+    one per Redditor, no repeats. Comments that never name the product (or its brand, or sit in a thread about it)
+    are used only to reach min_any quotes, so general advice does not crowd out comments about the product."""
+    chosen, seen_users, seen_text = [], set(), {t.lower() for t in exclude}
     # Some archived quotes are cut off mid-sentence: prefer ones that end cleanly, then the most specific.
     clean = lambda t: t.rstrip().endswith((".", "!", "?", '"', "'", ")", "\u201d"))
-    pool = sorted((c for c in cands if c[2] == sentiment), key=lambda c: (not clean(c[3]), -c[0], -len(c[3])))
+    pool = sorted((c for c in cands if c[2] == sentiment),
+                  key=lambda c: (-relevance(c[3], c[7], terms), not clean(c[3]), -c[0], -len(c[3])))
     for spec, user, _s, text, sub, date, url, thread in pool:
+        if terms[0] and len(chosen) >= min_any and relevance(text, thread, terms) == 0:
+            break
         key = text.lower()
         if user in seen_users or key in seen_text:
             continue
@@ -204,6 +240,69 @@ def pick_quotes(cands, sentiment, limit):
         if len(chosen) == limit:
             break
     return chosen
+
+
+def stance(sentiments):
+    """One Redditor's overall stance from all their opinions (a tie counts as neutral)."""
+    top = Counter(sentiments).most_common()
+    return "neutral" if len(top) > 1 and top[0][1] == top[1][1] else top[0][0]
+
+
+def tally(dated):
+    """One vote per Redditor: (redditors, positive, neutral, negative) from (date, user, sentiment) rows."""
+    by_user = defaultdict(list)
+    for _d, u, s in dated:
+        by_user[u].append(s)
+    c = Counter(stance(v) for v in by_user.values())
+    return sum(c.values()), c["positive"], c["neutral"], c["negative"]
+
+
+def product_extras(g, through, terms):
+    """Per-product evidence for the page: where it is discussed, how opinion moved over time, the date range."""
+    subs = sorted(((sub, len(u)) for sub, u in g["sub_users"].items() if sub), key=lambda x: (-x[1], x[0].lower()))[:6]
+    threads = sorted(g["threads"].values(), key=lambda t: (-len(t["users"]), t["title"]))
+    # Threads about this product first (title names the model), then the biggest.
+    threads = sorted(threads, key=lambda t: -(1 if set(norm(t["title"]).split()) & terms[0] else 0))[:5]
+    years = defaultdict(list)
+    for d, u, s in g["dated"]:
+        years[d[:4]].append((d, u, s))
+    timeline = []
+    for y in sorted(years):
+        n, pos, neu, neg = tally(years[y])
+        if n >= 5:
+            timeline.append({"year": y, "redditors": n, "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n)})
+    recent = None
+    if through and len(through) == 10:
+        cutoff = f"{int(through[:4]) - 1}{through[4:]}"
+        n, pos, neu, neg = tally([x for x in g["dated"] if x[0] > cutoff])
+        if n >= 5:
+            recent = {"since": cutoff, "redditors": n, "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n)}
+    dates = sorted(d for d, _u, _s in g["dated"])
+    return {
+        "subreddits": [{"name": s_, "redditors": n} for s_, n in subs],
+        "threads": [{"title": t["title"][:160], "subreddit": t["subreddit"], "url": t["url"], "redditors": len(t["users"])}
+                    for t in threads if t["title"]],
+        "timeline": timeline,
+        "recent": recent,
+        "first_date": dates[0] if dates else None,
+        "last_date": dates[-1] if dates else None,
+    }
+
+
+def point_entry(g, kind, title, count):
+    """A praised/criticised point, with one supporting Reddit quote linked to its comment when one can be found."""
+    entry = {"title": title, "count": count}
+    wanted = [q.lower() for q in g["point_quotes"].get((kind, title.lower()), [])]
+    if wanted:
+        by_text = {}
+        for spec, user, s, text, sub, date, url, thread in g["quotes"]:
+            by_text.setdefault(text.lower(), (text, sub, date, url))
+        for w in wanted:
+            hit = by_text.get(w) or next((v for k, v in by_text.items() if w and (w in k or k in w) and min(len(w), len(k)) >= 40), None)
+            if hit and hit[3]:
+                entry["quote"] = {"text": hit[0], "subreddit": hit[1], "date": hit[2], "url": hit[3]}
+                break
+    return entry
 
 
 def tidy_name(s):
@@ -241,7 +340,8 @@ def first_rule(rules, category, normed):
 
 def new_group(brand, name):
     return {"best": -1, "brand": brand, "name": name, "asin": None, "asin_n": -1, "img": None, "img_n": -1,
-            "is_series": True, "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": [], "threads": {}}
+            "is_series": True, "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": [], "threads": {},
+            "sub_users": defaultdict(set), "dated": [], "point_quotes": defaultdict(list)}
 
 
 def merge_into(t, g):
@@ -254,6 +354,11 @@ def merge_into(t, g):
     for k, th in g["threads"].items():
         t["threads"].setdefault(k, {**th, "users": set()})["users"] |= th["users"]
     t["subs"] |= g["subs"]
+    for sub, users in g["sub_users"].items():
+        t["sub_users"][sub] |= users
+    t["dated"].extend(g["dated"])
+    for k, qs in g["point_quotes"].items():
+        t["point_quotes"][k].extend(qs)
     t["members"].extend(g["members"])
     if g["asin"] and g["asin_n"] >= t["asin_n"]:
         t["asin"], t["asin_n"] = g["asin"], g["asin_n"]
@@ -290,7 +395,8 @@ def main():
         sv = series.get((r["category_slug"], r["model_slug"]))
         key = (c["slug"], ("series|" + product_key(*sv)) if sv else product_key(r["brand_name"], r["model_name"]))
         g = groups.setdefault(key, {"best": -1, "brand": "", "name": "", "asin": None, "asin_n": -1, "img": None, "img_n": -1, "is_series": False,
-                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": [], "threads": {}})
+                                    "users": defaultdict(list), "points": {}, "quotes": [], "subs": set(), "members": [], "threads": {},
+                                    "sub_users": defaultdict(set), "dated": [], "point_quotes": defaultdict(list)})
         n = int(num(r["user_opinion_count"]) or 0)
         g["members"].append((n, tidy_name(display_name(r["brand_name"], r["model_name"]))))
         if sv:
@@ -326,9 +432,12 @@ def main():
         g["users"][user].append(s)
         if r["subreddit"]:
             g["subs"].add(r["subreddit"])
+            g["sub_users"][r["subreddit"]].add(user)
         date = (r["comment_date"] or "")[:10]
         if date > through:
             through = date
+        if re.match(r"\d{4}-\d{2}-\d{2}$", date):
+            g["dated"].append((date, user, s))
         title = re.sub(r"\s+", " ", r.get("thread_title") or "").strip()
         if title and r["comment_permalink"]:
             turl = thread_url(r["comment_permalink"])
@@ -353,6 +462,9 @@ def main():
         count = int(num(r["likes_count" if kind == "likes" else "dislikes_count"]) or 0)
         entry = groups[key]["points"].setdefault((kind, title.lower()), [title, 0])
         entry[1] += count
+        for q in (r.get("top_quotes") or "").split(" || "):
+            if q.strip():
+                groups[key]["point_quotes"][(kind, title.lower())].append(q.strip())
 
     # ---- curation: drop old products, merge product families ------------------------
     cur = load_curation(a.curation)
@@ -429,15 +541,19 @@ def main():
                     variants.append(vname)
             shown_name = tidy_name(display_name(g["brand"], g["name"]))
             variants = [v for v in variants if norm(v) != norm(shown_name)][:10] if len(seen_v) > 1 else []
+            terms = product_terms(g["brand"], [shown_name] + [m[1] for m in g["members"]])
+            extra = product_extras(g, through, terms)
             ranked.append({
                 "name": shown_name, "brand": g["brand"], "opinions": n, "variants": variants,
                 "positive": pos, "neutral": neu, "negative": neg,
                 "share_positive": round(100 * pos / n), "share_negative": round(100 * neg / n),
                 "score": round(100 * wilson(pos + 0.5 * neu, n)), "_s": wilson(pos + 0.5 * neu, n),
                 "asin": g["asin"], "image": g["img"], "_subs": g["subs"], "_threads": g["threads"], "_old_slugs": g.get("old_slugs") or [],
-                "likes": [{"title": t, "count": k} for t, k in likes],
-                "dislikes": [{"title": t, "count": k} for t, k in dislikes],
-                "quotes": pick_quotes(g["quotes"], "positive", 3) + pick_quotes(g["quotes"], "negative", 2),
+                "likes": [point_entry(g, "likes", t, k) for t, k in likes],
+                "dislikes": [point_entry(g, "dislikes", t, k) for t, k in dislikes],
+                "quotes": (pos_q := pick_quotes(g["quotes"], "positive", 6, terms))
+                          + pick_quotes(g["quotes"], "negative", 4, terms, exclude=[q["text"] for q in pos_q]),
+                **extra,
             })
         ranked.sort(key=lambda p: (-p["_s"], -p["opinions"]))
         ranked = ranked[: a.top]

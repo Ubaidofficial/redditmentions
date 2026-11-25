@@ -30,3 +30,10 @@ export function phrase(title: string): string {
 export function dataYear(commentsThrough: string): string {
   return String(commentsThrough).slice(0, 4);
 }
+
+/** "Jun 2026" from "2026-06-20". */
+export function monthYear(date: string): string {
+  const m = /^(\d{4})-(\d{2})/.exec(String(date || ''));
+  if (!m) return String(date || '');
+  return `${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Number(m[2]) - 1]} ${m[1]}`;
+}

@@ -1,0 +1,86 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE, AMAZON_TAG } from '../config';
+import { meta, categories } from '../lib/data';
+
+const fmt = (n: number) => n.toLocaleString('en-US');
+const stats = meta.stats ?? null;
+const abs = (path: string) => new URL(path, SITE.url).toString();
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'AboutPage',
+    url: abs('/about/'),
+    name: `About ${SITE.name}`,
+    about: { '@id': abs('/#organization') },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': abs('/#organization'),
+    name: SITE.name,
+    url: abs('/'),
+    email: SITE.email,
+    description: SITE.description,
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
+      { '@type': 'ListItem', position: 2, name: 'About', item: abs('/about/') },
+    ],
+  },
+];
+---
+<Base
+  title={`About ${SITE.name}: Independent Product Rankings From Reddit`}
+  description={`${SITE.name} is an independent project that ranks products by what Reddit communities say about them, with every quote linked to its source. Who we are, how we make money and how to reach us.`}
+  jsonld={jsonld}
+>
+  <div class="wrap">
+    <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; About</p>
+    <div class="prose">
+      <h1>About <em>{SITE.name}</em></h1>
+
+      <p>
+        {SITE.name} ranks products by what people say about them in Reddit communities. Instead of one reviewer's
+        opinion, each ranking counts the opinions of many Redditors{stats ? <> ({fmt(stats.opinions)} across {fmt(stats.products)} products so far)</> : ''},
+        one vote per person, and links every quote back to the original comment so you can read it in context.
+      </p>
+
+      <h2>Who runs it</h2>
+      <p>
+        {SITE.name} is an independent project. It is not affiliated with, endorsed by or sponsored by Reddit, Inc., and
+        it has no relationship with the brands it ranks. No brand or retailer can pay for a placement or ask for a
+        ranking to change.
+      </p>
+
+      <h2>What we cover</h2>
+      <p>
+        Rankings for {categories.length} {categories.length === 1 ? 'category' : 'categories'} so far:{' '}
+        {categories.map((c: any, i: number) => (
+          <>{i > 0 && (i === categories.length - 1 ? ' and ' : ', ')}<a href={`/${c.slug}/`}>{c.name.toLowerCase()}</a></>
+        ))}.
+        Each is built from public Reddit comments collected through {meta.comments_through}. The full method, and what
+        the rankings cannot tell you, is on the <a href="/methodology/">method page</a>.
+      </p>
+
+      <h2>How the site makes money</h2>
+      <p>
+        {AMAZON_TAG
+          ? 'Some buttons link to Amazon with an affiliate tag. If you buy through them we may earn a commission, at no extra cost to you. Those links are marked as sponsored, and commissions never affect the rankings: a product ranks where Reddit opinion puts it, whether or not it can be bought through an affiliate link.'
+          : 'The site does not currently earn money from links. If that changes, it will be stated here and on every affected link, and it will not affect the rankings.'}
+      </p>
+
+      <h2>Corrections and quote removal</h2>
+      <ul>
+        <li>If a product is in the wrong place, two products are merged by mistake, or an opinion is mislabelled, tell us and we will check it.</li>
+        <li>If you wrote a Reddit comment quoted here and want it removed, send the link to the page and we will take the quote down.</li>
+        <li>Usernames are never shown. Quotes are short excerpts that link to the original comment.</li>
+      </ul>
+      <p>Write to <a href={`mailto:${SITE.email}`}>{SITE.email}</a> or see the <a href="/contact/">contact page</a>.</p>
+
+    </div>
+  </div>
+</Base>

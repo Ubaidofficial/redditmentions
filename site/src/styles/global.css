@@ -560,3 +560,40 @@ html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *
 @media (max-width: 720px) { :root[data-theme="dark"] .ccard:has(.art.has-photo) .body { background: none; } }
 
 .pactions .aff { flex-basis: 100%; font: 450 13px/1.4 var(--sans); color: var(--ink-3); margin-top: -8px; }
+
+/* ---- product page: evidence sections (freshness line, point quotes, where discussed, opinion over time) ---- */
+.fresh { margin: 10px 0 0; font: 450 13.5px/1.4 var(--sans); color: var(--ink-3); }
+.pair li { flex-wrap: wrap; }
+.pair li .pq { flex-basis: 100%; display: block; margin: 2px 0 0; padding-left: 12px; border-left: 2px solid var(--rule); font: 400 14.5px/1.5 var(--sans); color: var(--ink-2); }
+.pair li .pq q { quotes: "\201C" "\201D"; }
+.pair .good li .pq { border-left-color: var(--pos); } .pair .bad li .pq { border-left-color: var(--neg); }
+.pair li .pq a { color: var(--ink-3); font-size: 12.5px; white-space: nowrap; text-decoration: none; }
+.pair li .pq a:hover { color: var(--orange); text-decoration: underline; }
+.where, .over-time { margin-top: 72px; }
+.where .section-head h2, .over-time .section-head h2 { font: 400 clamp(28px, 3.4vw, 40px)/1.08 var(--serif); letter-spacing: -.02em; }
+.subs { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.subs li { display: flex; gap: 8px; align-items: baseline; padding: 8px 14px; border: 1px solid var(--rule); border-radius: 999px; background: var(--surface); font-size: 15px; }
+.subs li span { color: var(--ink-3); font-size: 13px; }
+.threads { list-style: none; margin: 22px 0 0; padding: 0; max-width: 780px; }
+.threads li { display: grid; gap: 2px; padding: 12px 0; border-top: 1px solid var(--rule); }
+.threads li a, .threads li > span { font: 550 16px/1.35 var(--sans); text-decoration: none; }
+.threads li a:hover { color: var(--orange); text-decoration: underline; text-underline-offset: 3px; }
+.threads li small { font: 450 12.5px/1.3 var(--sans); color: var(--ink-3); }
+.recent { margin: 6px 0 18px; font-size: 17px; line-height: 1.55; color: var(--ink-2); max-width: 720px; }
+.recent b { color: var(--ink); font-weight: 600; }
+.years { width: 100%; max-width: 780px; border-collapse: collapse; font-size: 15px; }
+.years th, .years td { text-align: left; padding: 10px 12px 10px 0; border-bottom: 1px solid var(--rule); font-weight: 450; }
+.years thead th { font: 600 11.5px/1.2 var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); }
+.years tbody th { font-weight: 600; }
+.years td:last-child { width: 40%; }
+.ybar { display: block; height: 10px; background: var(--neu); border-radius: 2px; overflow: hidden; }
+.ybar i { display: block; height: 100%; background: var(--pos); }
+.howline { margin-top: 40px; font-size: 14.5px; color: var(--ink-3); max-width: 720px; }
+.howline a { text-decoration: underline; text-underline-offset: 3px; }
+@media (max-width: 640px) {
+  .years td:last-child { width: 30%; }
+  .years th, .years td { padding-right: 8px; font-size: 14px; }
+}
+.recent-top { margin-top: 56px; }
+.recent-top .section-head h2 { font: 400 clamp(28px, 3.4vw, 40px)/1.08 var(--serif); letter-spacing: -.02em; }
+.page-head .fresh { margin-top: 12px; }

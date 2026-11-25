@@ -1,0 +1,62 @@
+---
+import Base from '../layouts/Base.astro';
+import { SITE } from '../config';
+
+const abs = (path: string) => new URL(path, SITE.url).toString();
+const jsonld = [
+  {
+    '@context': 'https://schema.org',
+    '@type': 'ContactPage',
+    url: abs('/contact/'),
+    name: `Contact ${SITE.name}`,
+    about: { '@id': abs('/#organization') },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'Organization',
+    '@id': abs('/#organization'),
+    name: SITE.name,
+    url: abs('/'),
+    email: SITE.email,
+    contactPoint: { '@type': 'ContactPoint', contactType: 'customer support', email: SITE.email, availableLanguage: 'en' },
+  },
+  {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: abs('/') },
+      { '@type': 'ListItem', position: 2, name: 'Contact', item: abs('/contact/') },
+    ],
+  },
+];
+---
+<Base
+  title={`Contact ${SITE.name}`}
+  description={`How to reach ${SITE.name}: report a ranking error, ask for a quote of yours to be removed, or suggest a product or category.`}
+  jsonld={jsonld}
+>
+  <div class="wrap">
+    <p class="crumbs"><a href="/">Home</a> &nbsp;/&nbsp; Contact</p>
+    <div class="prose">
+      <h1>Contact <em>us</em></h1>
+
+      <p>Email <a href={`mailto:${SITE.email}`}><b>{SITE.email}</b></a>. A person reads every message.</p>
+
+      <h2>What to write about</h2>
+      <ul>
+        <li><b>A ranking looks wrong.</b> Send the page link and what you think is off: a product in the wrong place, two different products merged, or an opinion labelled positive that was really negative.</li>
+        <li><b>Remove a quote.</b> If you wrote a Reddit comment quoted here, send the page link and the quote, and we will take it down.</li>
+        <li><b>A missing product or category.</b> Tell us what you would like ranked. Products need enough Reddit discussion to be ranked fairly.</li>
+        <li><b>Brands and retailers.</b> You are welcome to point out factual errors. Rankings cannot be bought or changed on request; see <a href="/about/">how the site works and makes money</a>.</li>
+      </ul>
+
+      <h2>Before you write</h2>
+      <p>
+        The <a href="/methodology/">method page</a> explains how products are scored and what the rankings cannot tell
+        you, which answers most questions about why a product ranks where it does.
+      </p>
+
+      <p style="margin-top:28px">{SITE.disclaimer}</p>
+    </div>
+  </div>
+</Base>

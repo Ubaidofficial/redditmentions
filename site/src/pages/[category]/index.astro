@@ -6,7 +6,7 @@ import Thumb from '../../components/Thumb.astro';
 import PopularityPlot from '../../components/PopularityPlot.astro';
 import CategoryCard from '../../components/CategoryCard.astro';
 import { evidence } from '../../lib/format';
-import { firstFit, joinList, dataYear } from '../../lib/seo';
+import { firstFit, joinList, dataYear, monthYear } from '../../lib/seo';
 import { SITE, SHOW_IMAGES, AMAZON_TAG } from '../../config';
 import { categories, getCategory, meta } from '../../lib/data';
 
@@ -51,6 +51,12 @@ const others = [...categories.slice(idx + 1), ...categories.slice(0, idx)].slice
 
 const lower = cat.name.toLowerCase();
 const year = dataYear(meta.comments_through);
+// Freshness: what Reddit discussed most in the last 12 months of data, and the newest comment counted.
+const lastDate = products.map((p: any) => p.last_date).filter(Boolean).sort().pop() ?? null;
+const recentTop = products
+  .filter((p: any) => p.recent && p.recent.redditors >= 10)
+  .sort((a: any, b: any) => b.recent.redditors - a.recent.redditors || b.recent.share_positive - a.recent.share_positive)
+  .slice(0, 5);
 const top3 = products.slice(0, 3).map((p: any) => p.name);
 // Brand Redditors were most positive about, among the most-discussed brands (needs a real sample).
 const bestBrand = [...brandBoard].filter((b) => b.opinions >= 50).sort((a, b) => b.share - a.share || b.opinions - a.opinions)[0];
@@ -98,9 +104,15 @@ const faqs = [
         a: `Among the ${brandBoard.length} most-discussed brands, Redditors are most positive about ${bestBrand.name}: ${bestBrand.share}% positive across ${fmt(bestBrand.opinions)} Redditors and ${bestBrand.products} ${bestBrand.products === 1 ? 'product' : 'products'}. Brand communities can skew toward their own brand, so compare individual products too.`,
       }]
     : []),
+  ...(recentTop.length
+    ? [{
+        q: `Which ${lower} are Redditors talking about most right now?`,
+        a: `In the 12 months to ${monthYear(meta.comments_through)}, the most discussed were ${joinList(recentTop.slice(0, 3).map((p: any) => `${p.name} (${fmt(p.recent.redditors)} Redditors, ${p.recent.share_positive}% positive)`))}.`,
+      }]
+    : []),
   {
     q: 'How recent is the data?',
-    a: `Rankings use public Reddit comments collected through ${meta.comments_through}. Products released after that may be missing.`,
+    a: `Rankings use public Reddit comments collected through ${meta.comments_through}${lastDate ? `; the newest comment counted for ${lower} is from ${lastDate}` : ''}. Products released after that may be missing.`,
   },
   {
     q: `Are the top-ranked ${lower} really the best?`,
@@ -145,9 +157,11 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
       <p class="basis num">Based on <b>{fmt(totalOpinions)}</b> Redditors’ opinions<span class="sep"> · </span><a href="#how">How it works</a></p>
       <h1>Best {cat.name} <em>according to Reddit</em></h1>
       <p class="lead">
-        Every product below has at least {meta.min_opinions} Redditors behind it. Rankings weigh how many people
-        approve against how many were counted, so a few enthusiasts cannot carry a product to the top.
+        {products.length} {lower}, each with at least {meta.min_opinions} Redditors behind it and {fmt(totalOpinions)} in
+        all{disc ? <> across {fmt(disc.total)} Reddit threads</> : ''}. Rankings weigh approval against how many people were
+        counted, so a few enthusiasts cannot carry a product to the top.
       </p>
+      {lastDate && <p class="fresh num">Newest comment counted: {lastDate} · rankings use comments through {meta.comments_through}</p>}
       <p class="tldr"><b>Short answer:</b> {summary}</p>
     </header>
 
@@ -192,6 +206,20 @@ const brands = [...new Set(products.map((p) => p.brand).filter(Boolean))].sort()
           </details>
         )}
         <p class="disc-note">The threads with the most Redditors counted across this ranking. Every product page links to the original comments.</p>
+      </section>
+    )}
+
+    {recentTop.length > 0 && (
+      <section class="recent-top" aria-labelledby="recent-h">
+        <div class="section-head"><h2 id="recent-h">Most discussed {lower} in the last 12 months</h2><span class="kicker">To {monthYear(meta.comments_through)}</span></div>
+        <ol class="threads">
+          {recentTop.map((p: any) => (
+            <li>
+              <a href={`/${cat.slug}/${p.slug}/`}>{p.name}</a>
+              <small class="num">{fmt(p.recent.redditors)} Redditors in the last 12 months · {p.recent.share_positive}% positive (all-time {p.share_positive}%) · ranked #{p.rank}</small>
+            </li>
+          ))}
+        </ol>
       </section>
     )}
 
